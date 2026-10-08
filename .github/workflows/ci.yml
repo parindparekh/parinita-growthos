@@ -1,0 +1,57 @@
+name: GrowthOS release checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: growthos
+          POSTGRES_PASSWORD: ci-only-isolated-password
+          POSTGRES_DB: growthos_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U growthos -d growthos_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m playwright install --with-deps chromium
+      - name: Run SQLite suite
+        if: matrix.database == 'sqlite'
+        run: python -m pytest -q -rs --junitxml=evidence/ci-sqlite.xml
+      - name: Run PostgreSQL suite
+        if: matrix.database == 'postgres'
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://growthos:ci-only-isolated-password@localhost:5432/growthos_test
+        run: python -m pytest -q -rs --junitxml=evidence/ci-postgres.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.database }}
+          path: evidence/ci-*.xml
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate disposable configuration
+        run: |
+          python - <<'PYCODE'
+          import pathlib, secrets
+          text = pathlib.Path(".env.example").read_text()
+          while "__GENERATE__" in text:
+              text = text.replace("__GENERATE__", secrets.token_hex(24), 1)
+          pathlib.Path(".env").write_text(text)
+          PYCODE
+      - run: docker compose config --quiet
+      - run: docker build -t growthos:test .

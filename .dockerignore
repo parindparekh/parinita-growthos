@@ -1,0 +1,16 @@
+# Never bake secrets, tests or documents into the image.
+.env
+.env.*
+!.env.example
+.git
+**/__pycache__
+.pytest_cache
+data/
+tests/
+docs/
+deliverables/
+examples/
+*.md
+*.sh
+*.ps1
+CHECKSUMS.sha256

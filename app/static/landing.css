@@ -1,0 +1,7 @@
+body{font-family:system-ui,sans-serif;margin:5rem;max-width:900px;color:#111;background:#fff}
+h1{font-size:3rem;margin-bottom:.2rem}
+.tag{font-size:1.2rem;color:#555}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.card{border:1px solid #ddd;border-radius:14px;padding:1rem}
+@media (max-width:640px){body{margin:1.5rem 1rem}h1{font-size:2rem}}
+@media (prefers-color-scheme:dark){body{color:#eee;background:#111}.tag{color:#aaa}.card{border-color:#333}}

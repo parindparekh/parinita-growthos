@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest==8.3.5
+oauthlib==3.2.2      # independent check of the X adapter's OAuth 1.0a signature
+# MCP interop tests use the official SDK from a SEPARATE interpreter (it pins a newer Starlette than FastAPI allows):
+#   python -m venv /opt/mcpsdk && /opt/mcpsdk/bin/pip install mcp==2.2.0 uvicorn && export MCP_SDK_PYTHON=/opt/mcpsdk/bin/python
+playwright==1.56.0   # console tests; also run `playwright install chromium`. Tests skip if no browser is present.

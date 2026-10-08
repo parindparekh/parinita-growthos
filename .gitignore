@@ -12,3 +12,6 @@ data/
 *.db-wal
 test-results/
 .DS_Store
+/deliverables/
+/docs/screenshots/
+/evidence/original-checksums.log
