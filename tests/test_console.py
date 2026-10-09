@@ -170,3 +170,36 @@ def test_console_fits_a_phone_without_sideways_scrolling(client, live_server, br
     if SHOTS:
         page.screenshot(path=os.path.join(SHOTS, "console-phone.png"), full_page=True)
     ctx.close()
+
+
+def test_drafting_campaign_brand_and_sources_in_console(client, live_server, page, monkeypatch):
+    from app import model_runtime
+    monkeypatch.setattr(model_runtime, 'configured', lambda: True)
+    monkeypatch.setattr(model_runtime, 'generate_json', lambda *args: ({'title': 'Workshop invitation', 'body': 'Please join the writing workshop.', 'summary': 'Workshop notes'}, 'model'))
+    sign_in_with_key(page, live_server, BOOT['X-API-Key'])
+    page.get_by_role('button', name='Brand voice', exact=True).click()
+    page.get_by_label('Brand name', exact=True).fill('Cedar Studio')
+    page.get_by_label('Voice and writing rules').fill('Direct and warm.')
+    page.get_by_role('button', name='Save brand voice').click()
+    page.get_by_text('Brand voice saved for future drafts.').wait_for()
+    page.get_by_role('button', name='Drafting studio', exact=True).click()
+    page.get_by_label('What should this content achieve?').fill('Invite our team to an online writing workshop.')
+    page.get_by_label('Facts and source material', exact=True).fill('Cedar Studio hosts an online writing workshop for team leads.')
+    page.get_by_role('button', name='Create four-format campaign').click()
+    page.get_by_text('In this campaign', exact=True).wait_for()
+    page.get_by_text('Original brief and sources', exact=True).click()
+    assert page.locator('.source-notes').inner_text() == 'Cedar Studio hosts an online writing workshop for team leads.'
+    assert len(client.get('/v1/content', headers=EDITOR).json()) == 4
+    assert page.console_errors == []
+
+
+def test_destination_setup_starts_disabled(client, live_server, page):
+    sign_in_with_key(page, live_server, BOOT['X-API-Key'])
+    page.get_by_role('button', name='Destinations', exact=True).click()
+    page.get_by_label('Destination name', exact=True).fill('Newsroom')
+    page.get_by_label('Short identifier', exact=True).fill('newsroom')
+    page.get_by_role('button', name='Save destination', exact=True).click()
+    page.get_by_text('Destination saved, switched off.', exact=False).wait_for()
+    result = client.get('/v1/feeds', headers=BOOT).json()
+    assert len(result) == 1 and result[0]['enabled'] is False
+    assert page.console_errors == []

@@ -1,0 +1,29 @@
+{{- if .Values.ingress.enabled }}
+{{- $host := required "ingress.host is required" .Values.ingress.host }}
+{{- if ne .Values.publicBaseUrl (printf "https://%s" $host) }}{{ fail "publicBaseUrl must match the HTTPS ingress host" }}{{ end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "growthos.name" . }}
+  labels: {{- include "growthos.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  tls:
+    - hosts: [{{ $host | quote }}]
+      secretName: {{ required "ingress.tlsSecretName is required" .Values.ingress.tlsSecretName | quote }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "growthos.name" . }}
+                port: {name: http}
+{{- end }}

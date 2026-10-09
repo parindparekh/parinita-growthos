@@ -42,7 +42,7 @@ from .schemas import (AEOProbeCreate, AEOProbeRun, AEOQueryCreate, AgentRunReque
                       ScheduleCreate, MediaContactCreate, MediaCoverageCreate, OpportunityStateUpdate, ClaimObservationCreate)
 from .security import Principal, authenticate, optional_principal, require_human, require_role
 
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 STATIC = Path(__file__).parent / "static"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -79,6 +79,8 @@ async def security_headers(request: Request, call_next):
 
 from .mcp_server import router as mcp_router  # noqa: E402
 app.include_router(mcp_router)
+from .drafting import router as drafting_router  # noqa: E402
+app.include_router(drafting_router)
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -149,6 +151,12 @@ def home():
             f"<div class='card'><b>Feed Fabric</b><p>RSS, Atom, JSON Feed, Podcast RSS, REST, webhooks and SMTP.</p></div>"
             f"<div class='card'><b>Governed Agents</b><p>Signal, PR, Media, Podcast, Social, Amplify, Engagement, Acquire, Feed, Claim, AEO, Performance, Gate and Rally.</p></div></div>"
             f"<p><a href='/console'>Open Growth Command</a> &nbsp; {docs}Health: <a href='/health'>/health</a></p></body></html>")
+
+
+@app.get("/live")
+def live():
+    """Process liveness, independent of database availability."""
+    return {"status": "alive"}
 
 
 @app.get("/health")

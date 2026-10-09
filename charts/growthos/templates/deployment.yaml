@@ -1,0 +1,101 @@
+{{- range $component := list "api" "worker" }}
+{{- if or (eq $component "api") $.Values.worker.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "growthos.name" $ }}-{{ $component }}
+  labels: {{- include "growthos.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ if eq $component "api" }}{{ $.Values.replicaCount }}{{ else }}1{{ end }}
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  # A single worker prevents duplicate feed polls during updates.
+  strategy:
+    type: {{ if eq $component "worker" }}Recreate{{ else }}RollingUpdate{{ end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $component }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: growthos
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: {{ $component }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 90
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $component }}
+          image: {{ include "growthos.image" $ | quote }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          securityContext: {{- include "growthos.security" $ | nindent 12 }}
+          {{- if eq $component "worker" }}
+          command: [python, -m, app.worker]
+          startupProbe:
+            exec:
+              command: [python, -c, "from pathlib import Path; assert Path('/tmp/growthos-worker-heartbeat').exists()"]
+            periodSeconds: 10
+            failureThreshold: 60
+          livenessProbe:
+            exec:
+              command: [python, -c, "import time, os; from pathlib import Path; assert time.time()-Path('/tmp/growthos-worker-heartbeat').stat().st_mtime < max(600, 3*int(os.environ.get('FEED_POLL_SECONDS',300)))"]
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          {{- else }}
+          ports:
+            - {name: http, containerPort: 8080}
+          startupProbe:
+            httpGet: {path: /live, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /live, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 5
+          {{- end }}
+          envFrom:
+            - configMapRef: {name: {{ include "growthos.name" $ }}}
+            - secretRef: {name: {{ required "existingSecret is required" $.Values.existingSecret | quote }}}
+          resources: {{- if eq $component "api" }}{{ toYaml $.Values.resources | nindent 12 }}{{ else }}{{ toYaml $.Values.worker.resources | nindent 12 }}{{ end }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            {{- if $.Values.media.enabled }}
+            - {name: media, mountPath: /media}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 512Mi}
+        {{- if $.Values.media.enabled }}
+        - name: media
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-media" (include "growthos.name" $)) $.Values.media.existingClaim }}
+        {{- end }}
+{{- end }}
+{{- end }}

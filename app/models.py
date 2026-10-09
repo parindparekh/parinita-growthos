@@ -8,6 +8,12 @@ def now():
     return datetime.now(timezone.utc)
 
 
+class BrandProfile(Base):
+    __tablename__ = "brand_profiles"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
 class ContentItem(Base):
     __tablename__ = "content_items"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

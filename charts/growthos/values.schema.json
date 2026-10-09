@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "replicaCount": {"type": "integer", "minimum": 1},
+    "image": {"type": "object", "properties": {"repository": {"type": "string"}, "tag": {"type": "string"}, "digest": {"type": "string", "pattern": "^$|^sha256:[a-f0-9]{64}$"}}},
+    "existingSecret": {"type": "string"},
+    "publicBaseUrl": {"type": "string"},
+    "worker": {"type": "object", "properties": {"enabled": {"type": "boolean"}}},
+    "ingress": {"type": "object", "properties": {"enabled": {"type": "boolean"}, "host": {"type": "string"}, "tlsSecretName": {"type": "string"}}},
+    "podDisruptionBudget": {"type": "object", "properties": {"minAvailable": {"type": "integer", "minimum": 1}}}
+  }
+}

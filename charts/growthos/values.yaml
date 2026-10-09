@@ -1,0 +1,63 @@
+# Set image repository and immutable tag/digest after building the supplied Dockerfile.
+image:
+  repository: ""
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+replicaCount: 1
+publicBaseUrl: ""
+# Must already exist. Prefer an External Secrets Operator-managed Secret.
+# DATABASE_URL, API_KEY/API_KEYS (or OIDC settings), TEXT_MODEL_API_KEY.
+existingSecret: ""
+model:
+  baseUrl: https://bluroute.denizenblu.com/v1
+  name: qwen3-0.6b
+service:
+  port: 8080
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+  tlsSecretName: ""
+resources:
+  requests: {cpu: 250m, memory: 256Mi}
+  limits: {cpu: "2", memory: 1Gi}
+worker:
+  enabled: true
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 512Mi}
+# Optional audio storage. API and worker must share ReadWriteMany storage.
+media:
+  enabled: false
+  existingClaim: ""
+  storageClass: ""
+  size: 10Gi
+# Production defaults to your existing PostgreSQL service, via DATABASE_URL.
+# This optional single-instance database is for clusters without one; it is not HA.
+postgresql:
+  enabled: false
+  image: postgres:16-alpine
+  existingSecret: ""
+  database: growthos
+  username: growthos
+  storageClass: ""
+  size: 20Gi
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "2", memory: 2Gi}
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# Non-secret app settings only. Secret values belong in existingSecret.
+env:
+  DOCS_ENABLED: "false"
+  GATE_SENTENCE_MODE: block
+  REQUIRE_FOUR_EYES: "true"
+  # Configure trusted ingress proxy CIDRs explicitly when required.
+  FORWARDED_ALLOW_IPS: "127.0.0.1"

@@ -1,0 +1,19 @@
+{{- $base := required "publicBaseUrl must be your HTTPS hostname" .Values.publicBaseUrl -}}
+{{- if not (hasPrefix "https://" $base) }}{{ fail "publicBaseUrl must use HTTPS" }}{{ end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "growthos.name" . }}
+  labels: {{- include "growthos.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: production
+  PUBLIC_BASE_URL: {{ $base | quote }}
+  TEXT_MODEL_BASE_URL: {{ .Values.model.baseUrl | quote }}
+  TEXT_MODEL_NAME: {{ .Values.model.name | quote }}
+  MEDIA_DIR: {{ ternary "/media" "" .Values.media.enabled | quote }}
+  {{- range $key, $value := .Values.env }}
+  {{- if or (has $key (list "ENVIRONMENT" "PUBLIC_BASE_URL" "MEDIA_DIR" "TEXT_MODEL_BASE_URL" "TEXT_MODEL_NAME")) (regexMatch "(?i)(SECRET|PASSWORD|TOKEN|API_KEY|DATABASE_URL)" $key) }}
+  {{- fail (printf "%s must not be set through env values; use existingSecret or the dedicated chart setting" $key) }}
+  {{- end }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

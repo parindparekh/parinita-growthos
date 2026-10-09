@@ -1,0 +1,9 @@
+GrowthOS installed in {{ .Release.Namespace }}.
+Console: {{ .Values.publicBaseUrl }}/console
+
+Verify:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+  kubectl rollout status deployment/{{ include "growthos.name" . }}-api -n {{ .Release.Namespace }}
+
+Configure DNS, TLS and the referenced Secret before exposing traffic.
+The chart does not prove external Denizen access or production readiness.

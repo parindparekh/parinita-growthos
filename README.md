@@ -159,3 +159,7 @@ The checked-in CI workflow defines SQLite and PostgreSQL 16 checks plus containe
 - Claim Graph records observed relationships; it does not prove causal influence.
 - Source presence, human approval, Gate clearance and Chrysalis attestation prove process/provenance controls, not that an external source itself is true.
 - Docker/PostgreSQL/Witness/live-provider/Chrysalis endpoint acceptance must still be run in the actual target environment before GA.
+# GrowthOS 1.9 deployment update
+
+The current source includes Denizen-backed drafting, brand voice, four-format campaign generation, editorial review, and a Kubernetes Helm chart. See [Kubernetes deployment](docs/KUBERNETES.md) for installation and [1.9 verification](evidence/GROWTHOS_1.9_VERIFICATION.md) for tested behavior and remaining limitations.
+

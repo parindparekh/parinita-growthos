@@ -1,0 +1,16 @@
+{{- if and .Values.media.enabled (not .Values.media.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "growthos.name" . }}-media
+  annotations:
+    helm.sh/resource-policy: keep
+  labels: {{- include "growthos.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteMany]
+  {{- if .Values.media.storageClass }}
+  storageClassName: {{ .Values.media.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests: {storage: {{ .Values.media.size }}}
+{{- end }}

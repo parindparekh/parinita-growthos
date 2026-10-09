@@ -1,0 +1,39 @@
+name: Package GrowthOS for Kubernetes
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pytest -q -p no:cacheprovider --ignore=tests/test_console.py
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.19.0
+      - run: python scripts/validate_chart.py
+      - name: Build and push immutable image
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${REPOSITORY,,}"
+          docker build --pull -t "$image:$COMMIT" .
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker push "$image:$COMMIT"
+          docker logout ghcr.io
+          echo "Image: $image:$COMMIT" >> "$GITHUB_STEP_SUMMARY"
+      - run: helm package charts/growthos --destination dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: growthos-helm
+          path: dist/*.tgz

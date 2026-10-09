@@ -1,6 +1,8 @@
 """Polling worker for inbound feeds. One session per endpoint so a failure cannot poison the rest."""
 import logging
 import time
+from pathlib import Path
+import tempfile
 from datetime import datetime, timezone
 
 from .config import settings
@@ -72,6 +74,7 @@ def main():
     while True:
         try:
             run_once()
+            (Path(tempfile.gettempdir()) / "growthos-worker-heartbeat").touch()
         except Exception:  # noqa: BLE001 - keep the loop alive across transient DB errors
             log.exception("worker cycle failed")
         time.sleep(max(30, settings.feed_poll_seconds))

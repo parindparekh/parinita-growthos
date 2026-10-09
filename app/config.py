@@ -2,6 +2,7 @@
 import json
 import logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field
 
 log = logging.getLogger("growthos.config")
 
@@ -129,9 +130,12 @@ class Settings(BaseSettings):
     rate_limit_max_buckets: int = 50000
 
     # --- optional model gateway --------------------------------------------
-    text_model_base_url: str = ""
-    text_model_api_key: str = ""
-    text_model_name: str = ""
+    # Reuse Denizen Blu's existing connection variables; explicit GrowthOS values win.
+    text_model_base_url: str = Field(default="", validation_alias=AliasChoices("text_model_base_url", "BLU_API_BASE"))
+    text_model_api_key: str = Field(default="", validation_alias=AliasChoices("text_model_api_key", "BLU_API_KEY"), repr=False)
+    text_model_name: str = Field(default="", validation_alias=AliasChoices("text_model_name", "BLU_MODEL"))
+    text_model_timeout_seconds: int = Field(default=90, ge=5, le=300)
+    text_model_max_tokens: int = Field(default=4096, ge=256, le=16384)
 
     # --- smtp ---------------------------------------------------------------
     smtp_host: str = ""
