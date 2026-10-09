@@ -20,9 +20,18 @@
 - Real Denizen Qwen generated all four synthetic campaign drafts, each saved in draft state. AI editorial review returned successfully after accommodating its list-shaped response. Synthetic test records are identifiable as tests in the local workspace.
 - Desktop studio and mobile brand settings inspected; no page errors and no phone-width overflow.
 
+## Verified GitHub build
+
+- Published application source: `85437c10c98ef8a361bc2cb14c32e24590bce0dc`.
+- [Release checks passed](https://github.com/parindparekh/parinita-growthos/actions/runs/37880379954): SQLite, PostgreSQL, container build and Helm validation.
+- [Container publishing and Helm packaging passed](https://github.com/parindparekh/parinita-growthos/actions/runs/37880475761).
+- Published image: `ghcr.io/parindparekh/parinita-growthos:85437c10c98ef8a361bc2cb14c32e24590bce0dc`.
+- Image digest: `sha256:086188f511d4999bbdfb0ac017a38294f1692e6b44280a4e6d3010aee6e45cca`.
+- `deploy/values-v1.9.0.yaml` pins this image. Replace the example hostname and cluster settings before installation; provision credentials separately as described in `docs/KUBERNETES.md`.
+
 ## Limits and outstanding production checks
 
-- No Kubernetes rollout has been performed. Image build/pull, cluster admission, PVC provisioning, real DNS/TLS, backup restore and cluster smoke tests remain unverified. No cluster context or deployment hostname was supplied. Docker/Kubernetes are not installed in the local validation environment.
+- No Kubernetes rollout has been performed. Cluster image pull, cluster admission, PVC provisioning, real DNS/TLS, backup restore and cluster smoke tests remain unverified. No cluster context or deployment hostname was supplied. Docker/Kubernetes are not installed in the local validation environment.
 - The verified model remains `qwen3-0.6b`. Alternative Denizen model trials produced truncated, malformed, timed-out or less source-faithful output; no superior model was established by these limited trials. This is not a benchmark of those model families.
 - The small Qwen model can ignore requested podcast structure or add unsupported meaning. Checks surface detectable issues; human source review remains necessary. An empty AI findings list is not proof of accuracy.
 - Podcast script generation is connected; production audio, consent, podcast hosting and distribution are not verified.

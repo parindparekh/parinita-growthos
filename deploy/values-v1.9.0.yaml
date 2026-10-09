@@ -1,0 +1,20 @@
+# Replace these deployment-specific values. No credentials belong in this file.
+image:
+  repository: ghcr.io/parindparekh/parinita-growthos
+  tag: 85437c10c98ef8a361bc2cb14c32e24590bce0dc
+  digest: sha256:086188f511d4999bbdfb0ac017a38294f1692e6b44280a4e6d3010aee6e45cca
+existingSecret: growthos-runtime
+publicBaseUrl: https://growthos.example.com
+ingress:
+  enabled: true
+  className: nginx
+  host: growthos.example.com
+  tlsSecretName: growthos-tls
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+model:
+  baseUrl: https://bluroute.denizenblu.com/v1
+  name: qwen3-0.6b
+# Optional: supply your registry pull secret if the image is private.
+imagePullSecrets: []
