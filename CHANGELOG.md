@@ -4,7 +4,7 @@ All 37 outbound adapters and four feed formats are configurable from the console
 
 # Changelog
 
-## v1.8.0 â€” 2026-10-08
+## v1.8.0 — 2026-10-08
 
 - Collision-aware GrowthOS names with occupied products reserved; API IDs and permissions unchanged.
 - Production receipt signatures/digest echo mandatory when Chrysalis is enabled.
