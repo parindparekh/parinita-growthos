@@ -79,7 +79,7 @@ class TikTokAdapter(Adapter):
             code = str((j.get("error") or {}).get("code", "ok"))
             if code == "ok":
                 mode = "sent to the creator's inbox for review" if body["post_mode"] == "MEDIA_UPLOAD" else "posted directly"
-                return DeliveryResult(ok=True, status_code=200, attempts=n, provider_id=str((j.get("data") or {}).get("publish_id", ""))[:300], detail=mode)
+                return DeliveryResult(ok=True, status_code=200, attempts=n, provider_id=str((j.get("data") or {}).get("publish_id", ""))[:300], publishes=bool(cfg.get("direct_post")), detail=mode)
             return DeliveryResult(ok=False, status_code=200, attempts=n, detail=f"TikTok refused: {code} {(j.get('error') or {}).get('message', '')}"[:300])
         hint = {401: "access token expired (TikTok user tokens last 24 h; refresh is not automated)",
                 403: "the app is not approved for the Content Posting API photo scope, or the image domain is not verified"}.get(r.status_code if r is not None else 0, "")
@@ -106,7 +106,7 @@ class TumblrAdapter(Adapter):
         r, n, err = call("POST", f"{base_url('tumblr', 'https://api.tumblr.com')}/v2/blog/{cfg['blog']}/posts", idempotent=False, json=body,
                          headers={"Authorization": f"Bearer {secret(cfg, 'bearer_token_env')}", "Content-Type": "application/json"})
         if r is not None and r.status_code == 201:
-            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str((r.json().get("response") or {}).get("id", ""))[:300])
+            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str((r.json().get("response") or {}).get("id", ""))[:300], publishes=cfg.get("state", "published") == "published")
         return failure(r, n, err, "Tumblr OAuth 2.0 token rejected" if r is not None and r.status_code == 401 else "")
 
 

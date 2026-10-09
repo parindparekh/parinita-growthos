@@ -43,11 +43,11 @@ def call(method: str, url: str, *, headers: dict, idempotent: bool, json=None, d
         try:
             r = safe_request(method, url, headers={"User-Agent": USER_AGENT, **headers}, json=json, data=data, auth=auth)
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            last_err, retry = f"{type(exc).__name__}: {exc}"[:300], True
+            last_err, retry = type(exc).__name__, True
         except FeedTooLarge:
             return None, n, "provider response exceeded limit; delivery outcome is uncertain (reconcile before retry)"
         except httpx.TransportError as exc:
-            last_err, retry = f"{type(exc).__name__}: {exc}"[:300], idempotent
+            last_err, retry = type(exc).__name__, idempotent
         else:
             if r.status_code == 429 or (idempotent and r.status_code >= 500):
                 last_err, retry = f"HTTP {r.status_code}", True
@@ -67,9 +67,9 @@ def call(method: str, url: str, *, headers: dict, idempotent: bool, json=None, d
 def failure(r, attempts: int, err: str, hint: str = "") -> DeliveryResult:
     if r is None:
         return DeliveryResult(ok=False, attempts=attempts, detail=err or "no response")
-    snippet = (r.text or "")[:200].replace("\n", " ")
+    # Provider bodies may echo tokens, recipient addresses or credential-bearing URLs.
     return DeliveryResult(ok=False, status_code=r.status_code, attempts=attempts,
-                          detail=f"HTTP {r.status_code}{' - ' + hint if hint else ''}: {snippet}")
+                          detail=f"HTTP {r.status_code}{' - ' + hint if hint else ''}")
 
 
 # ----------------------------------------------------------------------------- text

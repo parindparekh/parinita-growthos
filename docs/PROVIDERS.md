@@ -113,8 +113,9 @@ content version; the image host must be public https (and, for TikTok, verified)
 
 See `MCP.md` (`protocol: "mcp"`) and `VAAK.md` (`protocol: "vaak"`).
 
-Not built natively: Facebook / Instagram / Threads, YouTube, TikTok, Ghost, HubSpot, Mailchimp. Reach them through
-the `mcp` or `webhook` destination, or add an adapter (`PROVIDER_ADAPTER_GUIDE.md`).
+Facebook Pages, Instagram images, Threads, TikTok photos, Ghost and Mailchimp have the native adapters listed above.
+YouTube video and HubSpot do not have native adapters in this release; a separately configured MCP server or contracted
+webhook integration is needed. A generic transport does not establish provider-specific compatibility.
 
 ## Podcast hosts
 

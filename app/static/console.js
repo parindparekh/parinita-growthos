@@ -65,6 +65,8 @@ async function act(fn, okMessage = "") {
   render();
 }
 
+const metric = (label, number, detail) => h("div", { class: "metric" }, h("span", {}, label), h("strong", {}, number), h("small", {}, detail));
+
 // ---------------------------------------------------------------- data
 async function loadQueue() { S.items = await api("/v1/content?limit=200"); }
 async function loadDetail(id) {
@@ -77,6 +79,8 @@ async function loadDetail(id) {
 async function refresh() {
   await loadQueue();
   S.feeds = await api("/v1/feeds");
+  S.connectors = await api("/v1/connectors");
+  S.connectorReadiness = can("admin") ? await api("/v1/connectors/readiness") : null;
   if (S.sel && S.items.some((i) => i.id === S.sel)) {
     await loadDetail(S.sel);
     const home = TABS.find(([, , states]) => states.includes(S.detail.item.state));
@@ -106,14 +110,14 @@ function viewSignIn() {
     h("div", { class: "brand" }, "parinita", h("span", {}, "GROWTH OS")),
     h("div", {}, h("p", { class: "eyebrow" }, "THE GROWTH COMMAND CENTER"), h("h2", {}, "Good stories.\nGrounded in proof."),
       h("p", {}, "Bring your content, evidence, approvals and distribution into one accountable workspace."),
-      h("div", { class: "auth-path" }, "Prepare", h("span", {}, "→"), "Prove", h("span", {}, "→"), "Publish")),
+      h("div", { class: "auth-path" }, "Prepare", h("span", {}, "â†’"), "Prove", h("span", {}, "â†’"), "Publish")),
     h("p", { class: "auth-caption" }, "Agents prepare. People authorize. Every release leaves a record.")), box);
 }
 
 // ---------------------------------------------------------------- frame
 function bar() {
   const nav = h("nav", { "aria-label": "Sections" },
-    ...[["overview", "Overview", "◫"], ["create", "Drafting studio", "✎"], ["brand", "Brand voice", "◎"], ["releases", "Releases", "▤"], ["podcast", "Podcast", "◉"], ["intelligence", "Intelligence", "◈"], ["agents", "Agents", "✧"], ["destinations", "Destinations", "↗"], ["audit", "Audit", "☷"]].map(([v, label, icon]) =>
+    ...[["overview", "Overview", "â—«"], ["create", "Drafting studio", "âœŽ"], ["brand", "Brand voice", "â—Ž"], ["releases", "Releases", "â–¤"], ["podcast", "Podcast", "â—‰"], ["intelligence", "Intelligence", "â—ˆ"], ["agents", "Agents", "âœ§"], ["destinations", "Destinations", "â†—"], ["audit", "Audit", "â˜·"]].map(([v, label, icon]) =>
       h("button", { type: "button", "aria-current": S.view === v ? "page" : null, onclick: () => navigate(v) }, h("span", { class: "nav-icon", "aria-hidden": "true" }, icon), label)));
   return h("header", { class: "bar" }, h("div", { class: "brand" }, "parinita", h("span", {}, "GROWTH OS")),
     h("div", { class: "workspace-label" }, h("span", { class: "workspace-avatar", "aria-hidden": "true" }, "P"), h("div", {}, "Growth workspace", h("small", {}, "Communications & growth"))),
@@ -141,30 +145,30 @@ function topstrip() {
   const labels = { overview: "Overview", create: "Drafting studio", brand: "Brand voice", podcast: "Podcast studio", releases: "Release desk", intelligence: "Intelligence", agents: "Agent directory", destinations: "Distribution", audit: "Audit trail" };
   return h("div", { class: "topstrip" }, h("div", {}, h("span", {}, "Workspace"), h("span", { class: "crumb-divider" }, "/"), h("strong", {}, labels[S.view])),
     h("div", { class: "row" }, h("span", { class: "connection-badge" }, location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "Local workspace" : "Connected workspace"),
-      h("button", { class: "btn quiet", type: "button", onclick: () => navigate(S.view), "aria-label": "Refresh workspace" }, "↻ Refresh")));
+      h("button", { class: "btn quiet", type: "button", onclick: () => navigate(S.view), "aria-label": "Refresh workspace" }, "â†» Refresh")));
 }
 function viewOverview() {
   const working = S.items.filter(i => ["draft", "blocked"].includes(i.state)).length;
   const ready = S.items.filter(i => i.state === "approved").length;
   const sent = S.items.filter(i => i.state === "published").length;
   const enabled = S.feeds.filter(f => f.enabled).length;
-  const metric = (label, number, detail) => h("div", { class: "metric" }, h("span", {}, label), h("strong", {}, number), h("small", {}, detail));
+
   const action = (label, fn, primary = false) => h("button", { class: primary ? "btn primary" : "btn", type: "button", onclick: fn }, label);
   const step = (n, title, description, complete, fn) => h("button", { class: "setup-step", type: "button", onclick: fn },
-    h("span", { class: complete ? "step-index complete" : "step-index", "aria-hidden": "true" }, complete ? "✓" : n), h("span", {}, h("strong", {}, title), h("small", {}, description)), h("span", { "aria-hidden": "true" }, "↗"));
+    h("span", { class: complete ? "step-index complete" : "step-index", "aria-hidden": "true" }, complete ? "âœ“" : n), h("span", {}, h("strong", {}, title), h("small", {}, description)), h("span", { "aria-hidden": "true" }, "â†—"));
   const recent = h("section", { class: "panel recent queue" }, h("div", { class: "panel-heading" }, h("div", {}, eyebrow("THE RELEASE DESK"), h("h2", {}, "Your latest stories")), action("View all", () => navigate("releases"))),
     S.items.length ? h("ul", {}, ...S.items.slice(0, 6).map(i => h("li", {}, h("button", { type: "button", onclick: () => openRelease(i.id) },
-      h("span", { class: "release-symbol", "aria-hidden": "true" }, "▤"), h("span", { class: "recent-copy" }, h("span", { class: "t" }, i.title), h("span", { class: "m" }, i.classification, " · ", when(i.updated_at || i.created_at))),
+      h("span", { class: "release-symbol", "aria-hidden": "true" }, "â–¤"), h("span", { class: "recent-copy" }, h("span", { class: "t" }, i.title), h("span", { class: "m" }, i.classification, " Â· ", when(i.updated_at || i.created_at))),
       h("span", { class: `status-pill ${i.state}` }, STATE_WORD[i.state] || i.state))))) :
-    h("div", { class: "welcome-empty" }, h("div", { class: "empty-symbol", "aria-hidden": "true" }, "▤"), h("h3", {}, "Your first story starts here."),
+    h("div", { class: "welcome-empty" }, h("div", { class: "empty-symbol", "aria-hidden": "true" }, "â–¤"), h("h3", {}, "Your first story starts here."),
       h("p", {}, "Give GrowthOS a brief and source material. Get a draft to refine and bring through review."), can("editor") ? action("Create your first release", () => navigate("create"), true) : h("p", { class: "note" }, "An editor can create your first release.")));
   return h("div", { class: "page overview" }, h("div", { class: "page-heading" }, h("div", {}, eyebrow("YOUR GROWTH, GOVERNED"), h("h1", {}, "Your growth, in focus."),
-    h("p", {}, "The work, the proof and the next move. All in one place.")), can("editor") ? action("＋ Create content", () => navigate("create"), true) : null), ...notices(),
+    h("p", {}, "The work, the proof and the next move. All in one place.")), can("editor") ? action("ï¼‹ Create content", () => navigate("create"), true) : null), ...notices(),
     h("section", { class: "command-banner" }, h("div", {}, eyebrow(S.items.length ? "KEEP THE WORK MOVING" : "WELCOME TO YOUR WORKSPACE"), h("h2", {}, S.items.length ? `${working} ${working === 1 ? "story needs" : "stories need"} your attention.` : "Build momentum. Start with one story."),
       h("p", {}, "Move from a clear message to evidence-backed content, human review and coordinated distribution."),
-      action(S.items.length ? "Open the release desk →" : "Draft with GrowthOS →", S.items.length ? () => navigate("releases") : () => navigate("create"), true)),
+      action(S.items.length ? "Open the release desk â†’" : "Draft with GrowthOS â†’", S.items.length ? () => navigate("releases") : () => navigate("create"), true)),
       h("div", { class: "workflow-map", "aria-label": "Release workflow" }, ...["01 / Prepare", "02 / Prove", "03 / Approve", "04 / Distribute"].map(t => h("div", {}, h("span", {}, t.split(" / ")[0]), h("strong", {}, t.split(" / ")[1]))))),
-    h("div", { class: "metrics" }, metric("In progress", working, "Drafts & releases needing work"), metric("Ready to release", ready, "Current approved releases"), metric("Published", sent, "Releases with a sent state"), metric("Enabled destinations", enabled, `${S.feeds.length} configured · credentials not verified`)),
+    h("div", { class: "metrics" }, metric("In progress", working, "Drafts & releases needing work"), metric("Ready to release", ready, "Current approved releases"), metric("Published", sent, "Releases with a sent state"), metric("Enabled destinations", enabled, `${S.feeds.length} configured Â· credentials not verified`)),
     h("div", { class: "overview-grid" }, recent, h("section", { class: "panel setup" }, h("div", { class: "panel-heading" }, h("div", {}, eyebrow("A CLEAR PATH FORWARD"), h("h2", {}, "Workspace essentials"))),
       step("01", "Create a governed release", "One master message, with sources attached.", S.items.length > 0, () => navigate("releases")),
       step("02", "Set up distribution", "Connect where your approved content goes.", S.feeds.length > 0, () => navigate("destinations")),
@@ -185,7 +189,7 @@ function viewAgents() {
 
 function viewCreation() {
   const podcast = S.view === "podcast";
-  const formats = [["press_release", "Press release", "▤"], ["social", "Social message", "↗"], ["email", "Email message", "✉"], ["podcast", "Podcast script", "◉"]];
+  const formats = [["press_release", "Press release", "â–¤"], ["social", "Social message", "â†—"], ["email", "Email message", "âœ‰"], ["podcast", "Podcast script", "â—‰"]];
   const connected = S.drafting?.configured;
   const field = (id, label, control) => h("div", { class: "field" }, h("label", { for: id }, label), control);
   const note = connected ? `Connected to ${S.drafting.model}. Generated copy is saved as a draft for your review.` :
@@ -198,20 +202,20 @@ function viewCreation() {
       onclick: () => { S.draftFormat = id; render(); } }, h("span", { "aria-hidden": "true" }, icon), label))),
     h("form", { class: "panel studio-form", onsubmit: e => { e.preventDefault(); if (S.generating) return; S.generating = true;
       const pack = e.submitter?.dataset.campaign === "true";
-      e.currentTarget.querySelectorAll('button[type="submit"]').forEach(b => { b.disabled = true; }); e.submitter.textContent = pack ? "Preparing four drafts…" : "Drafting…";
+      e.currentTarget.querySelectorAll('button[type="submit"]').forEach(b => { b.disabled = true; }); e.submitter.textContent = pack ? "Preparing four draftsâ€¦" : "Draftingâ€¦";
       const brief = { format: S.draftFormat, brief: val("brief-goal"), source_material: val("brief-sources"), audience: val("brief-audience"), tone: val("brief-tone"), classification: val("brief-class"), parent_id: S.reviseSource?.id || null };
       act(async () => { try { const result = await api(pack ? "/v1/drafting/campaign" : "/v1/drafting/drafts", { method: "POST", body: brief }); const item = pack ? result.items[0] : result;
           await loadQueue(); await loadDetail(item.id); S.view = "releases"; S.creating = false; S.tab = "work"; S.reviseSource = null; }
         finally { S.generating = false; } }, "Draft generated. Review the copy and attach evidence before running release checks."); } },
       h("h2", {}, S.reviseSource ? "Create another version" : "Your brief"),
       h("p", {class:"note"}, S.reviseSource ? "Your original draft is preserved. Describe what the next version should change." : `${S.drafting?.specialists?.[S.draftFormat]?.agent || "Your specialist"} writes this format using your saved brand voice.`),
-      field("brief-goal", "What should this content achieve?", h("textarea", { id: "brief-goal", rows: "3", minlength: "10", maxlength: "6000", required: true, placeholder: "Describe the announcement, message or episode you want to create…" }, S.reviseSource?.metadata?.drafting?.brief || "")),
+      field("brief-goal", "What should this content achieve?", h("textarea", { id: "brief-goal", rows: "3", minlength: "10", maxlength: "6000", required: true, placeholder: "Describe the announcement, message or episode you want to createâ€¦" }, S.reviseSource?.metadata?.drafting?.brief || "")),
       field("brief-sources", "Facts and source material", h("textarea", { id: "brief-sources", rows: "6", minlength: "10", maxlength: "24000", required: true, placeholder: "Paste the confirmed facts, product notes or supporting material. Include source references where available. Links alone are not fetched." }, S.reviseSource?.metadata?.drafting?.source_material || "")),
       h("div", { class: "draft-options" }, field("brief-audience", "Who is this for?", h("input", { id: "brief-audience", type: "text", maxlength: "500", placeholder: "For example: customers, journalists or podcast listeners" })),
         field("brief-tone", "Tone", h("select", { id: "brief-tone" }, ...["professional", "conversational", "concise"].map(t => h("option", { value: t }, t[0].toUpperCase() + t.slice(1))))),
         field("brief-class", "Review category", h("select", { id: "brief-class" }, ...["pr", "social", "general", "investor", "regulated", "financial", "legal", "health"].map(t => h("option", { value: t }, t))))),
       h("p", { class: "note" }, "Source notes guide drafting; they are not automatically marked as verified evidence. Nothing is approved, voiced or sent by this action."),
-      h("div", { class: "row" }, h("button", { type: "submit", class: "btn primary", disabled: !connected || !can("editor") || S.generating }, S.generating ? "Drafting…" : "Generate draft"),
+      h("div", { class: "row" }, h("button", { type: "submit", class: "btn primary", disabled: !connected || !can("editor") || S.generating }, S.generating ? "Draftingâ€¦" : "Generate draft"),
         h("button", { type: "submit", "data-campaign": "true", class: "btn", disabled: !connected || !can("editor") || S.generating }, "Create four-format campaign"),
         h("button", { type: "button", class: "btn", disabled: !can("editor"), onclick: beginRelease }, "Write manually"))),
     podcast ? h("section", { class: "podcast-production" }, h("h2", {}, "From script to episode"),
@@ -239,20 +243,20 @@ function draftingNotes(item) {
   const current = review?.content_hash === item.content_hash;
   const siblings = S.items.filter(i => item.campaign_id && i.campaign_id === item.campaign_id && i.id !== item.id);
   return h("section", {class:"drafting-notes"}, h("h2", {}, "Writing & review"),
-    h("p", {class:"note"}, `${d.agent || "Specialist"} · ${d.model} · ${d.quality?.word_count ?? item.body.split(/\s+/).length} words at generation. Human source review is still required.`),
+    h("p", {class:"note"}, `${d.agent || "Specialist"} Â· ${d.model} Â· ${d.quality?.word_count ?? item.body.split(/\s+/).length} words at generation. Human source review is still required.`),
     h("div", {class:"row"}, h("button", {class:"btn",type:"button",disabled:!can("editor"),onclick:()=>act(async()=>{
       await api(`/v1/drafting/${encodeURIComponent(item.id)}/review`,{method:"POST"}); await loadDetail(item.id);
     },"AI editorial review recorded. This does not approve the draft.")}, "Review with AI"),
     h("button", {class:"btn",type:"button",disabled:!can("editor"),onclick:()=>{S.reviseSource=item;S.draftFormat=d.format;return navigate("create");}},"Create another version"),
     h("button", {class:"btn",type:"button",onclick:()=>{
-      const file = new Blob([`DRAFT — FOR REVIEW\n\n${item.title}\n\n${item.body}\n\n${item.summary}`],{type:"text/plain;charset=utf-8"});
+      const file = new Blob([`DRAFT â€” FOR REVIEW\n\n${item.title}\n\n${item.body}\n\n${item.summary}`],{type:"text/plain;charset=utf-8"});
       const url=URL.createObjectURL(file);const a=h("a",{href:url,download:`growthos-${item.id}.txt`});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }},"Download draft")),
     siblings.length ? h("div", {class:"campaign-links"},h("strong",{},"In this campaign"),...siblings.map(i=>h("button",{class:"btn quiet",type:"button",onclick:()=>openRelease(i.id)},i.content_type))) : null,
     h("details",{},h("summary",{},"Original brief and sources"),h("p",{},d.brief),h("pre",{class:"source-notes"},d.source_material)),
     d.quality?.issues?.length ? h("div",{class:"editorial-findings"},h("h3",{},"Checks at generation"),...d.quality.issues.map(i=>h("p",{},`${i.text}: ${i.message}`))) : h("p",{class:"note"},"Mechanical checks at generation found no issues. This is not a factual verification."),
-    review ? h("div",{class:"editorial-findings"},h("h3",{},current?"AI editorial suggestions":"Earlier AI review — rerun after edits"),
-      ...review.findings.map(f=>h("p",{},h("strong",{},f.excerpt)," — ",f.reason)),
+    review ? h("div",{class:"editorial-findings"},h("h3",{},current?"AI editorial suggestions":"Earlier AI review â€” rerun after edits"),
+      ...review.findings.map(f=>h("p",{},h("strong",{},f.excerpt)," â€” ",f.reason)),
       h("p",{class:"note"},review.findings.length?review.scope:"No unsupported passages detected by the model. Review sources yourself before approval.")) : null);
 }
 
@@ -292,7 +296,7 @@ function resolvePanel(row, item) {
   const mayWaive = can(waiverRole) && humanOk();
   const left = h("div", {}, h("h3", {}, "Add evidence"),
     h("div", { class: "field" }, h("label", { for: "c-text" }, "What the source supports"), h("textarea", { id: "c-text", rows: "3" }, row.text)),
-    h("div", { class: "field" }, h("label", { for: "c-src" }, "Source"), h("input", { id: "c-src", type: "text", placeholder: "https://…  or  internal://memo-id" })),
+    h("div", { class: "field" }, h("label", { for: "c-src" }, "Source"), h("input", { id: "c-src", type: "text", placeholder: "https://â€¦  or  internal://memo-id" })),
     h("div", { class: "field" }, h("label", { for: "c-type" }, "Type"), h("select", { id: "c-type" },
       h("option", { value: "fact" }, "Fact"), h("option", { value: "quote" }, "Quotation"), h("option", { value: "forecast" }, "Forecast"))),
     h("button", { class: "btn primary", type: "button", disabled: !can("editor"), onclick: () => act(async () => {
@@ -418,31 +422,74 @@ function viewReleases() {
 }
 
 // ---------------------------------------------------------------- destinations
+function connectorForm() {
+  if (!can("admin")) return null;
+  const editing = S.editDestination;
+  const selected = editing?.protocol || S.connectorType || "rss";
+  const spec = (S.connectors || []).find(c => c.protocol === selected);
+  if (!spec) return null;
+  const config = editing?.config || spec.defaults;
+  const labels = {author_urn:"Author URN", bearer_token_env:"Access token variable", webhook_url_env:"Webhook URL variable", api_key_env:"API key variable", app_password_env:"Application password variable", bot_token_env:"Bot token variable", recipients_env:"Recipient list variable", keystring:"Public app key", twin_id:"Enrolled voice ID", to:"Recipient email", ig_user_id:"Instagram account ID"};
+  const fields = spec.fields.map(f => {
+    const label = labels[f.key] || f.key.replace(/_env$/, " variable").replaceAll("_", " ");
+    return h("div",{class:"field"},h("label",{for:`connector-${f.key}`},label + (f.required ? " *" : "")),
+      h("input",{id:`connector-${f.key}`,type:"text",value:config[f.key] ?? "",required:f.required,
+        pattern:f.secret_reference?"GROWTHOS_SECRET_[A-Z0-9_]+":null,
+        placeholder:f.secret_reference?`GROWTHOS_SECRET_${selected.toUpperCase()}_${f.key.replace(/_env$/, "").toUpperCase()}`:""}));
+  });
+  const advanced = Object.fromEntries(Object.entries(config).filter(([k])=>!spec.fields.some(f=>f.key===k)));
+  const form = h("form",{class:"panel studio-form",onsubmit:e=>{e.preventDefault();act(async()=>{
+    let cfg;
+    try { cfg=JSON.parse(val("dest-advanced") || "{}"); } catch { throw new Error("Advanced settings must be valid JSON."); }
+    if (!cfg || typeof cfg!=="object" || Array.isArray(cfg)) throw new Error("Advanced settings must be a JSON object.");
+    for(const f of spec.fields) { const v=val(`connector-${f.key}`); if(v) cfg[f.key]=v; else delete cfg[f.key]; }
+    const body={name:val("dest-name"),url:val("dest-url"),config:cfg};
+    if(editing) await api(`/v1/feeds/${encodeURIComponent(editing.id)}`,{method:"PATCH",body});
+    else await api("/v1/feeds",{method:"POST",body:{...body,slug:val("dest-slug"),protocol:selected,direction:val("dest-direction"),enabled:false}});
+    S.editDestination=null; await refresh();
+  },editing?"Destination settings updated.":"Destination saved, switched off. Review readiness before enabling it.");}},
+    h("h2",{},editing?`Edit ${editing.name}`:"Add a destination"),
+    h("div",{class:"draft-options"},
+      h("div",{class:"field"},h("label",{for:"dest-type"},"Destination type"),h("select",{id:"dest-type",disabled:!!editing,onchange:e=>{S.connectorType=e.target.value;render();}},
+        ...(S.connectors||[]).map(c=>h("option",{value:c.protocol,selected:c.protocol===selected},`${c.group} Â· ${c.name}`)))),
+      h("div",{class:"field"},h("label",{for:"dest-name"},"Destination name"),h("input",{id:"dest-name",type:"text",required:true,value:editing?.name||""})),
+      h("div",{class:"field"},h("label",{for:"dest-slug"},"Short identifier"),h("input",{id:"dest-slug",type:"text",required:true,disabled:!!editing,pattern:"[a-z0-9][a-z0-9_\\-]*",value:editing?.slug||""}))),
+    h("div",{class:"field"},h("label",{for:"dest-direction"},"Direction"),h("select",{id:"dest-direction",disabled:!!editing},
+      ...spec.directions.map(d=>h("option",{value:d,selected:d===(editing?.direction||"outbound")},d)))),
+    h("p",{class:"note"},spec.note),
+    h("div",{class:"field"},h("label",{for:"dest-url"},"Service or feed URL"),h("input",{id:"dest-url",type:"url",required:spec.url_required,value:editing?.url||"",placeholder:"https://â€¦"})),
+    h("div",{class:"draft-options"},...fields),
+    h("details",{},h("summary",{},"Advanced settings"),h("p",{class:"note"},"Additional provider options and destination policy. Use variable names for credentials, never secret values."),
+      h("div",{class:"field"},h("label",{for:"dest-advanced"},"Provider settings (JSON)"),h("textarea",{id:"dest-advanced",rows:"6",spellcheck:"false"},JSON.stringify(advanced,null,2)))),
+    h("p",{class:"note"},"Credentials are provisioned in the server or Kubernetes Secret. Saving never sends a message. Configuration checks do not verify live account permissions or token expiry."),
+    h("div",{class:"row"},h("button",{type:"submit",class:"btn primary"},"Save destination"),editing?h("button",{type:"button",class:"btn",onclick:()=>{S.editDestination=null;render();}},"Cancel editing"):null));
+  return form;
+}
+
 function viewDestinations() {
-  const form = can("admin") ? h("form",{class:"panel studio-form",onsubmit:e=>{e.preventDefault();act(async()=>{
-    const protocol=val("dest-type");const url=val("dest-url");
-    await api("/v1/feeds",{method:"POST",body:{name:val("dest-name"),slug:val("dest-slug"),protocol,direction:"outbound",url,
-      enabled:false,config:val("dest-secret")?{bearer_token_env:val("dest-secret")}:{} }});
-    await refresh();
-  },"Destination saved, switched off. Turn it on when its settings are ready.");}},h("h2",{},"Add a destination"),
-    h("div",{class:"draft-options"},...[["name","Destination name"],["slug","Short identifier"]].map(([key,label])=>h("div",{class:"field"},h("label",{for:`dest-${key}`},label),h("input",{id:`dest-${key}`,required:true,pattern:key==="slug"?"[a-z0-9][a-z0-9_\\-]*":null}))),
-    h("div",{class:"field"},h("label",{for:"dest-type"},"Destination type"),h("select",{id:"dest-type"},...[['rss','RSS newsroom'],['jsonfeed','JSON feed'],['podcast_rss','Podcast RSS'],['webhook','Webhook']].map(([v,t])=>h("option",{value:v},t))))),
-    h("div",{class:"field"},h("label",{for:"dest-url"},"Webhook URL (webhooks only)"),h("input",{id:"dest-url",type:"url",placeholder:"https://…"})),
-    h("div",{class:"field"},h("label",{for:"dest-secret"},"Credential variable name (optional)"),h("input",{id:"dest-secret",pattern:"GROWTHOS_SECRET_[A-Z0-9_]+",placeholder:"GROWTHOS_SECRET_NEWSROOM"})),
-    h("p",{class:"note"},"Use a server secret variable name, never a credential value. Saving does not send or publish content. Podcast feeds require reviewed audio attachments."),
-    h("button",{type:"submit",class:"btn primary"},"Save destination")) : null;
-  const rows = S.feeds.map((f) => h("tr", {}, h("td", {}, f.name, h("div", { class: "note" }, f.slug)), h("td", {}, f.protocol), h("td", {}, f.direction),
-    h("td", {}, f.enabled ? "On" : "Off", f.last_status ? h("div", { class: f.last_status === "ok" ? "sent" : "failed" }, f.last_status === "ok" ? `Last sync worked, ${when(f.last_sync_at)}` : `Last sync failed: ${f.last_error}`) : null),
-    h("td", {}, safeHref(f.public_url) ? h("a", { href: safeHref(f.public_url), target: "_blank", rel: "noopener noreferrer" }, "Public feed") : ""),
-    h("td", {}, h("div", { class: "row" },
-      h("button", { class: "btn", type: "button", disabled: !can("admin"), onclick: () => act(async () => {
-        await api(`/v1/feeds/${encodeURIComponent(f.id)}`, { method: "PATCH", body: { enabled: !f.enabled } }); await refresh(); }, `${f.name} turned ${f.enabled ? "off" : "on"}.`) }, f.enabled ? "Turn off" : "Turn on"),
-      f.direction !== "outbound" ? h("button", { class: "btn", type: "button", disabled: !can("admin"), onclick: () => act(async () => {
-        const r = await api(`/v1/feeds/${encodeURIComponent(f.id)}/sync`, { method: "POST" }); await refresh(); S.ok = `${r.count} new item${r.count === 1 ? "" : "s"} from ${f.name}.`; }) }, "Sync now") : null))));
-  return h("div", { class: "page" }, h("h1", {}, "Destinations"),
-    h("p", {}, "Where releases come from and go to. Turning a destination off stops both its public feed and anything sent to it."), ...notices(),
-    S.feeds.length ? h("div", { class: "tablewrap" }, h("table", {}, h("thead", {}, h("tr", {}, ...["Name", "Type", "Direction", "Status", "", ""].map((t) => h("th", {}, t)))), h("tbody", {}, ...rows)))
-      : h("p", { class: "empty" }, "No destinations yet. An administrator can add a newsroom feed or webhook below."), form);
+  const readiness = S.connectorReadiness?.endpoints || [];
+  const rows = S.feeds.map(f => {
+    const r=readiness.find(x=>x.endpoint_id===f.id);
+    return h("tr",{},h("td",{},f.name,h("div",{class:"note"},f.slug)),h("td",{},(S.connectors||[]).find(c=>c.protocol===f.protocol)?.name||f.protocol),
+      h("td",{},f.direction),h("td",{},f.enabled?"On":"Off",
+        r?h("div",{class:"note"},r.configuration_ready?"Settings ready Â· live verification pending":r.problems.join(" ")):null,
+        f.last_status?h("div",{class:"note"},`Last sync: ${f.last_status}`):null),
+      h("td",{},safeHref(f.public_url)?h("a",{href:safeHref(f.public_url),target:"_blank",rel:"noopener noreferrer"},"Public feed"):null),
+      h("td",{},h("div",{class:"row"},
+        h("button",{class:"btn",type:"button",disabled:!can("admin"),onclick:()=>{S.editDestination=f;render();document.getElementById("dest-name")?.focus();}},"Edit settings"),
+        h("button",{class:"btn",type:"button",disabled:!can("admin")||(!f.enabled&&r&&!r.configuration_ready),onclick:()=>act(async()=>{
+          await api(`/v1/feeds/${encodeURIComponent(f.id)}`,{method:"PATCH",body:{enabled:!f.enabled}});await refresh();
+        },`${f.name} turned ${f.enabled?"off":"on"}.`)},f.enabled?"Turn off":"Turn on"),
+        f.direction!=="outbound"?h("button",{class:"btn",type:"button",disabled:!can("admin"),onclick:()=>act(async()=>{
+          await api(`/v1/feeds/${encodeURIComponent(f.id)}/sync`,{method:"POST"});await refresh();
+        },"Feed sync finished.")},"Sync now"):null)));
+  });
+  return h("div",{class:"page"},h("h1",{},"Destinations"),
+    h("p",{},`${(S.connectors||[]).length} feed and connector types available. Configure accounts, review missing credentials, and control where approved releases go.`),...notices(),
+    can("admin")?h("button",{class:"btn",type:"button",onclick:()=>act(refresh,"Configuration readiness refreshed. No messages were sent.")},"Check configuration"):null,
+    S.connectorReadiness?h("div",{class:"metrics"},...S.connectorReadiness.services.map(s=>metric(s.name,s.configured?"Configured":"Needs setup","Live acceptance still required"))):null,
+    rows.length?h("div",{class:"tablewrap"},h("table",{},h("thead",{},h("tr",{},...["Name","Connector","Direction","Readiness","Feed","Actions"].map(t=>h("th",{},t)))),h("tbody",{},...rows))):h("p",{class:"empty"},"No destinations yet. Choose a connector below."),
+    connectorForm());
 }
 
 // ---------------------------------------------------------------- intelligence
@@ -462,14 +509,14 @@ function viewIntelligence() {
   const inboxRows = (x.inbox || []).map((r) => h("tr", {}, h("td", {}, r.provider), h("td", {}, r.priority), h("td", {}, r.intent), h("td", {}, r.body.slice(0,120)), h("td", {}, r.state)));
   const schedRows = (x.schedules || []).map((r) => h("tr", {}, h("td", {}, when(r.run_at)), h("td", {}, r.status), h("td", {}, r.content_id), h("td", {}, r.endpoint_id)));
   const oppRows = (x.opportunities || []).map((r) => h("tr", {}, h("td", {class:"num"}, r.score), h("td", {}, r.kind), h("td", {}, r.title), h("td", {}, r.recommendation?.action || "review")));
-  const coverageRows = (x.media?.items || []).slice(0,10).map((r) => h("tr", {}, h("td", {}, r.outlet || "—"), h("td", {}, r.author || "—"), h("td", {}, r.title), h("td", {}, r.sentiment)));
+  const coverageRows = (x.media?.items || []).slice(0,10).map((r) => h("tr", {}, h("td", {}, r.outlet || "â€”"), h("td", {}, r.author || "â€”"), h("td", {}, r.title), h("td", {}, r.sentiment)));
   const chr = x.chrysalis || {};
   return h("div", {class:"page"}, h("h1", {}, "Intelligence"),
     h("p", {}, "Outcome telemetry, answer-engine visibility, engagement inbox and scheduled distribution. These views report observed data; they do not infer causation."), ...notices(),
-    h("section", {}, h("h2", {}, "Performance · 30 days"), h("p", {}, `CTR ${x.perf.derived?.click_through_rate || 0} · engagement ${x.perf.derived?.engagement_rate || 0} · conversion ${x.perf.derived?.conversion_rate || 0}`),
+    h("section", {}, h("h2", {}, "Performance Â· 30 days"), h("p", {}, `CTR ${x.perf.derived?.click_through_rate || 0} Â· engagement ${x.perf.derived?.engagement_rate || 0} Â· conversion ${x.perf.derived?.conversion_rate || 0}`),
       metricRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Metric"), h("th", {}, "Total"))), h("tbody", {}, ...metricRows))) : h("p", {class:"note"}, "No performance events yet."),
       channelRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, ...["Channel","CTR","Engagement","Conversion"].map((t)=>h("th",{},t)))), h("tbody", {}, ...channelRows))) : null),
-    h("section", {}, h("h2", {}, "AEO / GEO visibility"), h("p", {}, `${x.aeo.mentions || 0} mentions in ${x.aeo.probes || 0} observed answer-engine responses · visibility ${(x.aeo.visibility_rate || 0)}`),
+    h("section", {}, h("h2", {}, "AEO / GEO visibility"), h("p", {}, `${x.aeo.mentions || 0} mentions in ${x.aeo.probes || 0} observed answer-engine responses Â· visibility ${(x.aeo.visibility_rate || 0)}`),
       citeRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Cited domain"), h("th", {}, "Citations"))), h("tbody", {}, ...citeRows))) : h("p", {class:"note"}, "No AEO probes yet.")),
     h("section", {}, h("h2", {}, "Engagement inbox"), inboxRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, ...["Provider","Priority","Intent","Message","State"].map((t)=>h("th",{},t)))), h("tbody", {}, ...inboxRows))) : h("p", {class:"note"}, "No inbound messages yet.")),
     h("section", {}, h("h2", {}, "Opportunity Queue"), h("p", {class:"note"}, "Signal combines earned media, AEO, inbox pressure and observed performance into ranked next actions. Nothing here is an approval to publish."),
@@ -477,9 +524,9 @@ function viewIntelligence() {
       h("button",{class:"btn",type:"button",disabled:!can("editor"),onclick:()=>act(async()=>{await api('/v1/opportunities/refresh',{method:'POST'});await loadIntelligence();},"Opportunities recalculated from available observations.")},"Refresh opportunities")),
     h("section", {}, h("h2", {}, "Earned media"), coverageRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, ...["Outlet","Author","Coverage","Sentiment"].map((t)=>h("th",{},t)))), h("tbody", {}, ...coverageRows))) : h("p", {class:"note"}, "No licensed/provider coverage observations yet.")),
     h("section", {}, h("h2", {}, "Chrysalis trust anchor"),
-      h("p", {}, chr.enabled ? `Enabled · ${chr.latest?.status || "no receipt yet"}` : "Not enabled in this environment"),
+      h("p", {}, chr.enabled ? `Enabled Â· ${chr.latest?.status || "no receipt yet"}` : "Not enabled in this environment"),
       chr.latest?.chrysalis_ref ? h("code", {}, `receipt ${chr.latest.chrysalis_ref}`) : null,
-      h("p", {class:"note"}, chr.architecture || "GrowthOS local audit chain → Chrysalis external assurance anchor")),
+      h("p", {class:"note"}, chr.architecture || "GrowthOS local audit chain â†’ Chrysalis external assurance anchor")),
     h("section", {}, h("h2", {}, "Scheduled distribution"), schedRows.length ? h("div", {class:"tablewrap"}, h("table", {}, h("thead", {}, h("tr", {}, ...["When","State","Release","Destination"].map((t)=>h("th",{},t)))), h("tbody", {}, ...schedRows))) : h("p", {class:"note"}, "No scheduled sends.")),
     h("button", {class:"btn", type:"button", onclick:()=>act(loadIntelligence,"Intelligence refreshed.")}, "Refresh"));
 }
@@ -506,7 +553,7 @@ function viewAudit() {
 // what was typed is put back.
 let lastContext = "";
 function render() {
-  const context = [S.me ? S.me.principal : "", S.view, S.sel, S.openLine, S.editing, S.creating].join("|");
+  const context = [S.me ? S.me.principal : "", S.view, S.sel, S.openLine, S.editing, S.creating, S.connectorType, S.editDestination?.id].join("|");
   const typed = {};
   if (context === lastContext) root.querySelectorAll("input[id], textarea[id], select[id]").forEach((el) => { if (el.type !== "password") typed[el.id] = el.value; });
   const focused = document.activeElement && document.activeElement.id;

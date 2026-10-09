@@ -73,7 +73,20 @@ def secret_from_env(name: str) -> str:
     return os.getenv(name, "")
 
 
+def redact_destination_error(message: str, config: dict) -> str:
+    """Defence in depth for adapters whose upstream exceptions contain request credentials."""
+    from urllib.parse import quote
+    text = str(message)
+    for _, name in _env_refs(config):
+        value = secret_from_env(name)
+        if value:
+            text = text.replace(value, "[redacted]").replace(quote(value, safe=""), "[redacted]")
+    return text[:500]
+
+
 def clean_headers(headers: dict | None) -> dict[str, str]:
+    if headers is not None and not isinstance(headers, dict):
+        raise DestinationBlocked("config.headers must be an object")
     out: dict[str, str] = {}
     for k, v in (headers or {}).items():
         k, v = str(k), str(v)
@@ -94,7 +107,9 @@ def _env_refs(obj):
     """Every '<something>_env' value anywhere in the config, however deeply nested."""
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if isinstance(k, str) and k.endswith("_env") and isinstance(v, str):
+            if isinstance(k, str) and k.endswith("_env"):
+                if not isinstance(v, str):
+                    raise DestinationBlocked(f"{k} must be a server secret variable name")
                 yield k, v
             else:
                 yield from _env_refs(v)
@@ -105,12 +120,29 @@ def _env_refs(obj):
 
 def validate_endpoint_config(url: str, config: dict, *, needs_url: bool, protocol: str = "", direction: str = "") -> None:
     """Static validation at endpoint creation time (no DNS; that happens at use time)."""
+    if not isinstance(config, dict):
+        raise DestinationBlocked("config must be an object")
+    # Prevent common accidental credential persistence in the database and API responses.
+    def reject_plaintext(obj):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key.lower() in {"password", "token", "access_token", "refresh_token", "api_key", "client_secret", "bearer_token", "authorization", "webhook_url", "app_password", "admin_key"}:
+                    raise DestinationBlocked("Credentials must use server secret references ending in _env")
+                reject_plaintext(value)
+        elif isinstance(obj, list):
+            for value in obj:
+                reject_plaintext(value)
+    reject_plaintext(config)
     if protocol in PUSH_ONLY and direction and direction != "outbound":
         raise DestinationBlocked(f"'{protocol}' endpoints must be outbound")
     if needs_url:
         if not url:
             raise DestinationBlocked("this protocol/direction requires a URL")
-        u = urlparse(url)
+        try:
+            u = urlparse(url)
+            _ = u.port
+        except ValueError:
+            raise DestinationBlocked("invalid destination URL") from None
         if u.scheme not in {"http", "https"} or not u.hostname:
             raise DestinationBlocked("only absolute http/https URLs are allowed")
         if u.username or u.password:
@@ -122,7 +154,10 @@ def validate_endpoint_config(url: str, config: dict, *, needs_url: bool, protoco
     if protocol:
         from .adapters import REGISTRY  # local import: adapters import this module
         adapter = REGISTRY.get(protocol)
-        problem = adapter.check_config(url, config) if adapter else ""
+        try:
+            problem = adapter.check_config(url, config) if adapter else ""
+        except (TypeError, ValueError, AttributeError):
+            raise DestinationBlocked("invalid connector configuration field types") from None
         if problem:
             raise DestinationBlocked(problem)
 

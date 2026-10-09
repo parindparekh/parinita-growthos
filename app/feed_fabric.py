@@ -353,6 +353,8 @@ def push_content(db: Session, item: ContentItem, endpoint: FeedEndpoint, actor: 
     else:
         blocked_exc = None
 
+    from .netguard import redact_destination_error
+    result.detail = redact_destination_error(result.detail, cfg)
     delivery.attempts = (delivery.attempts or 0) + result.attempts
     delivery.response_code = result.status_code
     delivery.provider_id = result.provider_id or delivery.provider_id or ""  # keep a resume point across failed attempts
@@ -377,7 +379,7 @@ def push_content(db: Session, item: ContentItem, endpoint: FeedEndpoint, actor: 
     db.commit()
     if not result.ok:
         if blocked_exc is not None:
-            raise blocked_exc
+            raise ValueError(result.detail) from None
         raise RuntimeError(f"delivery failed: {result.detail}")
     return {"status": "sent", "duplicate": False, "delivery_id": delivery.id, "destination": endpoint.name,
             "provider_id": delivery.provider_id, "published": result.publishes, "artifacts": result.artifacts or {},

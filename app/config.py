@@ -5,6 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AliasChoices, Field
 
 log = logging.getLogger("growthos.config")
+# HTTP client info logs include full URLs; bot and webhook credentials can be in paths or queries.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 WEAK_KEYS = {"", "change-me-now", "changeme", "test", "test-key", "secret", "password", "growthos"}
 MIN_KEY_LENGTH = 24

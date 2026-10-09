@@ -60,5 +60,5 @@ def generate_json(system: str, user: str, fallback: dict, list_field: str | None
             return fallback, "deterministic-fallback: model returned non-object JSON"
         return out, "model"
     except Exception as exc:  # noqa: BLE001 - any gateway failure degrades to deterministic output
-        log.warning("model gateway failed: %s", exc)
+        log.warning("model gateway failed: %s", type(exc).__name__)
         return fallback, f"deterministic-fallback: {type(exc).__name__}"

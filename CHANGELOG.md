@@ -1,6 +1,10 @@
+## 1.9.1 — Connector setup and production hardening
+
+All 37 outbound adapters and four feed formats are configurable from the console. Added configuration readiness checks, editable provider settings and a complete coverage register. Fixed empty-config validation bypass, malformed config handling, caller-forged server metadata, credential-bearing errors, draft-as-published reporting, HTML escaping and partial SMTP success reporting. Compose worker now mounts shared audio storage and exposes heartbeat health; CI boots the runtime stack. Target-cluster and live-account acceptance remain outstanding.
+
 # Changelog
 
-## v1.8.0 — 2026-10-08
+## v1.8.0 â€” 2026-10-08
 
 - Collision-aware GrowthOS names with occupied products reserved; API IDs and permissions unchanged.
 - Production receipt signatures/digest echo mandatory when Chrysalis is enabled.

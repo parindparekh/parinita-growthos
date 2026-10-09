@@ -66,9 +66,28 @@ jobs:
           python - <<'PYCODE'
           import pathlib, secrets
           text = pathlib.Path(".env.example").read_text()
+          text = text.replace("ENVIRONMENT=development", "ENVIRONMENT=production")
+          text = text.replace("PUBLIC_BASE_URL=http://localhost:8080", "PUBLIC_BASE_URL=https://growthos.example.com")
           while "__GENERATE__" in text:
               text = text.replace("__GENERATE__", secrets.token_hex(24), 1)
           pathlib.Path(".env").write_text(text)
           PYCODE
       - run: docker compose config --quiet
       - run: docker build -t growthos:test .
+      - name: Boot API, PostgreSQL and worker with production configuration
+        run: docker compose up --build --wait --wait-timeout 180
+      - name: Verify runtime and authentication boundary
+        run: |
+          python - <<'PYCODE'
+          import json, urllib.request, urllib.error
+          for path in ('/live', '/health', '/console'):
+              assert urllib.request.urlopen('http://127.0.0.1:8080' + path, timeout=10).status == 200
+          try:
+              urllib.request.urlopen('http://127.0.0.1:8080/v1/connectors', timeout=10)
+              raise AssertionError('Connector inventory must require authentication')
+          except urllib.error.HTTPError as error:
+              assert error.code == 401
+          PYCODE
+      - name: Stop disposable runtime
+        if: always()
+        run: docker compose down --volumes

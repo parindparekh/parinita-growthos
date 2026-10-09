@@ -80,7 +80,8 @@ def test_telegram_and_token_never_leaks(client, providers):
     assert r.json()["provider_id"] == "@parinita_news:77" and providers.calls("POST", path)[0]["json"]["chat_id"] == "@parinita_news"
     providers.reply("POST", path, (403, {}, {"ok": False, "description": "bot 123456:telegram-bot-token was kicked"}))
     r = publish(client, approved(client, title="Second"), ep)
-    assert r.status_code == 502 and "telegram-bot-token" not in r.text and "<token>" in r.json()["detail"]
+    assert r.status_code == 502 and "telegram-bot-token" not in r.text
+    assert r.json()["detail"] == "delivery failed: HTTP 403"
 
 
 def test_wordpress_post_is_escaped_html(client, sink, lan):

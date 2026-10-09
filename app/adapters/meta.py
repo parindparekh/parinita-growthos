@@ -55,7 +55,7 @@ class FacebookPageAdapter(Adapter):
             form["link"] = link
         r, n, err = call("POST", f"{_graph(cfg, 'meta', 'https://graph.facebook.com')}/{cfg['page_id']}/feed", idempotent=False, data=form, headers={})
         if r is not None and r.status_code == 200:
-            return DeliveryResult(ok=True, status_code=200, attempts=n, provider_id=str(r.json().get("id", ""))[:300])
+            return DeliveryResult(ok=True, status_code=200, attempts=n, provider_id=str(r.json().get("id", ""))[:300], publishes=not cfg.get("unpublished", False))
         hint = {190: "Page token expired or invalid", 200: "the token lacks pages_manage_posts / the user is not a Page admin",
                 368: "the Page is restricted by Facebook"}.get(_code(r), "")
         return failure(r, n, err, (_graph_error(r) + (" - " + hint if hint else "")) if r is not None else "")

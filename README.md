@@ -1,4 +1,8 @@
-# Parinita GrowthOS v1.8.0
+# Parinita GrowthOS v1.9.1
+
+## Connector hardening update
+
+All 37 outbound adapters and four feed formats now have console setup, editable settings and configuration readiness checks. See [connector coverage and production acceptance](docs/CONNECTOR_COVERAGE.md). This release improves validation, credential handling, draft delivery reporting and runtime checks; live account certification and target-cluster acceptance remain required.
 
 ## Running the application
 

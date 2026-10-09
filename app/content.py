@@ -54,10 +54,9 @@ def update_content(item: ContentItem, patch: ContentUpdate) -> list[str]:
     if data.get("metadata") is not None:
         # Caller metadata is merged; agent output lives under a reserved key and is preserved.
         meta = json.loads(item.metadata_json or "{}")
-        keep = meta.get("agent_history")
+        keep = {k: meta[k] for k in ("agent_history", "vaak", "editorial_review") if k in meta}
         meta = dict(data["metadata"])
-        if keep is not None:
-            meta["agent_history"] = keep
+        meta.update(keep)
         item.metadata_json = json.dumps(meta)
     if changed:
         item.content_hash = governed_hash(item)

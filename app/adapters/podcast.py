@@ -46,7 +46,7 @@ class TransistorAdapter(Adapter):
             if not episode_id:
                 return DeliveryResult(ok=False, status_code=r.status_code, attempts=attempts, detail="Transistor returned no episode id")
         if cfg.get("publish", True) is False:
-            return DeliveryResult(ok=True, status_code=201, attempts=max(attempts, 1), provider_id=f"episode:{episode_id}", detail="created as draft")
+            return DeliveryResult(ok=True, status_code=201, attempts=max(attempts, 1), provider_id=f"episode:{episode_id}", publishes=False, detail="created as draft")
         # Publishing an already-published episode is harmless, so this step may be retried.
         r, n, err = call("PATCH", f"{api}/episodes/{episode_id}/publish", idempotent=True,
                          data={"episode[status]": "published"}, headers=headers)
@@ -78,7 +78,7 @@ class BuzzsproutAdapter(Adapter):
         r, n, err = call("POST", url, idempotent=False, json=body,
                          headers={"Authorization": f"Token token={secret(cfg, 'api_token_env')}", "Content-Type": "application/json"})
         if r is not None and r.status_code in (200, 201):
-            return DeliveryResult(ok=True, status_code=r.status_code, attempts=n, provider_id=f"episode:{r.json().get('id', '')}")
+            return DeliveryResult(ok=True, status_code=r.status_code, attempts=n, provider_id=f"episode:{r.json().get('id', '')}", publishes=cfg.get("publish", True) is not False)
         return failure(r, n, err)
 
 

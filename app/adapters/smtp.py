@@ -34,7 +34,11 @@ def send_mail(to: list[str], subject: str, body: str, message_id_seed: str, cont
                 s.login(settings.smtp_username, settings.smtp_password)
             refused = s.send_message(msg)
     except (smtplib.SMTPException, OSError) as exc:
-        return DeliveryResult(ok=False, detail=f"{type(exc).__name__}: {exc}"[:500])
+        return DeliveryResult(ok=False, detail=type(exc).__name__)
+    if refused:
+        # Retrying the whole message may duplicate mail to the accepted recipients.
+        return DeliveryResult(ok=False, provider_id=msg["Message-ID"],
+                              detail="Some recipients were refused; reconcile accepted recipients before any retry.")
     return DeliveryResult(ok=True, provider_id=msg["Message-ID"], detail=f"recipients={len(to)} refused={len(refused or {})}")
 
 

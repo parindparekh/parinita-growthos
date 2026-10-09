@@ -54,6 +54,13 @@ def _check_id(v: str | None) -> str | None:
     return v
 
 
+def _check_content_metadata(value):
+    # These fields are produced by authenticated server workflows, not by caller assertions.
+    if value is not None and {"agent_history", "vaak", "editorial_review"} & value.keys():
+        raise ValueError("agent_history, vaak and editorial_review are server-managed metadata")
+    return value
+
+
 class SourceRef(BaseModel):
     uri: str
     title: str = ""
@@ -101,6 +108,7 @@ class ContentCreate(BaseModel):
 
     _v_id = field_validator("id")(classmethod(lambda cls, v: _check_id(v)))
     _v_cta = field_validator("cta_url")(classmethod(lambda cls, v: _check_web_url(v)))
+    _v_metadata = field_validator("metadata")(classmethod(lambda cls, v: _check_content_metadata(v)))
 
 
 class ContentUpdate(BaseModel):
@@ -118,6 +126,7 @@ class ContentUpdate(BaseModel):
     metadata: dict[str, Any] | None = None
 
     _v_cta = field_validator("cta_url")(classmethod(lambda cls, v: _check_web_url(v) if v else v))
+    _v_metadata = field_validator("metadata")(classmethod(lambda cls, v: _check_content_metadata(v)))
 
 
 class FeedEndpointCreate(BaseModel):

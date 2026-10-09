@@ -203,3 +203,30 @@ def test_destination_setup_starts_disabled(client, live_server, page):
     result = client.get('/v1/feeds', headers=BOOT).json()
     assert len(result) == 1 and result[0]['enabled'] is False
     assert page.console_errors == []
+
+
+def test_connector_setup_edit_and_readiness(client, live_server, page, monkeypatch):
+    monkeypatch.delenv('GROWTHOS_SECRET_CONSOLE_SLACK', raising=False)
+    sign_in_with_key(page, live_server, BOOT['X-API-Key'])
+    page.get_by_role('button', name='Destinations', exact=True).click()
+    page.locator('#dest-type').wait_for()
+    assert page.locator('#dest-type option').count() == 41
+    page.get_by_label('Destination type').select_option('slack')
+    page.get_by_label('Destination name', exact=True).fill('Team updates')
+    page.get_by_label('Short identifier', exact=True).fill('team-updates')
+    page.get_by_label('channel *', exact=True).fill('C123')
+    page.get_by_label('Access token variable *', exact=True).fill('GROWTHOS_SECRET_CONSOLE_SLACK')
+    page.get_by_role('button', name='Save destination', exact=True).click()
+    page.get_by_text('Destination saved, switched off.', exact=False).wait_for()
+    assert page.get_by_role('button', name='Turn on', exact=True).is_disabled()
+    page.get_by_role('button', name='Edit settings', exact=True).click()
+    assert page.get_by_label('channel *', exact=True).input_value() == 'C123'
+    page.get_by_label('channel *', exact=True).fill('C456')
+    page.get_by_role('button', name='Save destination', exact=True).click()
+    page.get_by_text('Destination settings updated.', exact=True).wait_for()
+    assert client.get('/v1/feeds', headers=BOOT).json()[0]['config']['channel'] == 'C456'
+    monkeypatch.setenv('GROWTHOS_SECRET_CONSOLE_SLACK', 'test-token')
+    page.get_by_role('button', name='Check configuration', exact=True).click()
+    page.get_by_text('Configuration readiness refreshed.', exact=False).wait_for()
+    assert page.get_by_role('button', name='Turn on', exact=True).is_enabled()
+    assert page.console_errors == []

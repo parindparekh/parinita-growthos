@@ -2,6 +2,6 @@ apiVersion: v2
 name: growthos
 description: Parinita GrowthOS API, console and background worker
 type: application
-version: 1.9.0
-appVersion: "1.9.0"
+version: 1.9.1
+appVersion: "1.9.1"
 kubeVersion: ">=1.25.0-0"

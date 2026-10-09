@@ -42,7 +42,7 @@ from .schemas import (AEOProbeCreate, AEOProbeRun, AEOQueryCreate, AgentRunReque
                       ScheduleCreate, MediaContactCreate, MediaCoverageCreate, OpportunityStateUpdate, ClaimObservationCreate)
 from .security import Principal, authenticate, optional_principal, require_human, require_role
 
-VERSION = "1.9.0"
+VERSION = "1.9.1"
 STATIC = Path(__file__).parent / "static"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -81,6 +81,8 @@ from .mcp_server import router as mcp_router  # noqa: E402
 app.include_router(mcp_router)
 from .drafting import router as drafting_router  # noqa: E402
 app.include_router(drafting_router)
+from .connectors import router as connectors_router  # noqa: E402
+app.include_router(connectors_router)
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -786,8 +788,9 @@ def edit_feed(endpoint_id: str, patch: FeedEndpointUpdate, db: Session = Depends
     ep = _endpoint(db, endpoint_id)
     data = patch.model_dump(exclude_unset=True)
     try:
-        cfg = data.get("config") or json.loads(ep.config_json or "{}")
-        validate_endpoint_config(data.get("url", ep.url), cfg, needs_url=_needs_url(ep.protocol, ep.direction, cfg),
+        cfg = data["config"] if data.get("config") is not None else json.loads(ep.config_json or "{}")
+        url = data["url"] if data.get("url") is not None else ep.url
+        validate_endpoint_config(url, cfg, needs_url=_needs_url(ep.protocol, ep.direction, cfg),
                                  protocol=ep.protocol, direction=ep.direction)
     except DestinationBlocked as e:
         raise HTTPException(422, str(e))

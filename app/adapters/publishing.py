@@ -8,6 +8,7 @@
                creates a second campaign)
 """
 import re
+import html
 import time
 
 from . import Adapter, DeliveryResult, register
@@ -15,7 +16,7 @@ from ._common import base_url, call, failure, secret
 
 
 def _html(payload: dict, link_label: str = "Read more") -> str:
-    esc = lambda s: str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")  # noqa: E731
+    esc = lambda s: html.escape(str(s), quote=True)  # noqa: E731
     body = (payload.get("body") or payload.get("summary") or "").strip()
     out = "".join(f"<p>{esc(p).replace(chr(10), '<br>')}</p>" for p in re.split(r"\n\s*\n", body) if p.strip())
     if payload.get("cta_url"):
@@ -49,7 +50,7 @@ class DevToAdapter(Adapter):
                          headers={"api-key": secret(cfg, "api_key_env"), "Content-Type": "application/json"})
         if r is not None and r.status_code == 201:
             j = r.json()
-            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str(j.get("url") or j.get("id", ""))[:300])
+            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str(j.get("url") or j.get("id", ""))[:300], publishes=not cfg.get("draft", False))
         return failure(r, n, err, "api key rejected" if r is not None and r.status_code == 401 else "")
 
 
@@ -85,7 +86,7 @@ class GhostAdapter(Adapter):
                          headers={"Authorization": f"Ghost {tok}", "Content-Type": "application/json", "Accept-Version": str(cfg.get("accept_version", "v5.0"))})
         if r is not None and r.status_code == 201:
             p = (r.json().get("posts") or [{}])[0]
-            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str(p.get("url") or p.get("id", ""))[:300])
+            return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str(p.get("url") or p.get("id", ""))[:300], publishes=not cfg.get("draft", False))
         return failure(r, n, err, "Admin API key rejected" if r is not None and r.status_code == 401 else "")
 
 
@@ -104,7 +105,7 @@ class ButtondownAdapter(Adapter):
                          headers={"Authorization": f"Token {secret(cfg, 'api_key_env')}", "Content-Type": "application/json"})
         if r is not None and r.status_code == 201:
             return DeliveryResult(ok=True, status_code=201, attempts=n, provider_id=str(r.json().get("id", ""))[:300],
-                                  detail="draft created" if cfg.get("draft") else "queued to send")
+                                  publishes=not cfg.get("draft", False), detail="draft created" if cfg.get("draft") else "queued to send")
         return failure(r, n, err)
 
 
@@ -145,7 +146,7 @@ class MailchimpAdapter(Adapter):
             out.provider_id = campaign
             return out
         if cfg.get("draft"):
-            return DeliveryResult(ok=True, status_code=200, attempts=attempts, provider_id=campaign, detail="campaign drafted, not sent")
+            return DeliveryResult(ok=True, status_code=200, attempts=attempts, provider_id=campaign, publishes=False, detail="campaign drafted, not sent")
         r, n, err = call("POST", f"{base}/campaigns/{campaign}/actions/send", idempotent=False, auth=auth, headers={})
         attempts += n
         if r is not None and r.status_code == 204:

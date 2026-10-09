@@ -8,6 +8,7 @@
   Google Business  POST /v4/accounts/{account}/locations/{location}/localPosts   "What's new" post with optional CTA
 """
 import re
+import html as html_lib
 
 from . import Adapter, DeliveryResult, register
 from ._common import base_url, call, compose, failure, secret
@@ -66,11 +67,11 @@ class ShopifyAdapter(Adapter):
         lead = (payload.get("body") or payload.get("summary") or "").strip()
         html = "".join(f"<p>{p}</p>" for p in _paragraphs(lead))
         if payload.get("cta_url"):
-            html += f"<p><a href=\"{payload['cta_url']}\">{str(cfg.get('link_label', 'Read more'))}</a></p>"
+            html += f"<p><a href=\"{html_lib.escape(payload['cta_url'], quote=True)}\">{html_lib.escape(str(cfg.get('link_label', 'Read more')))}</a></p>"
         article = {"title": str(payload.get("title", ""))[:255], "body_html": html, "published": not cfg.get("draft", False),
                    "author": str(cfg.get("author", "Parinita GrowthOS"))}
         if payload.get("summary"):
-            article["summary_html"] = f"<p>{payload['summary']}</p>"
+            article["summary_html"] = f"<p>{html_lib.escape(str(payload['summary']))}</p>"
         tags = cfg.get("tags") or []
         if tags:
             article["tags"] = ", ".join(str(t) for t in tags[:50])
@@ -81,7 +82,7 @@ class ShopifyAdapter(Adapter):
                          json={"article": article}, headers={"X-Shopify-Access-Token": secret(cfg, "access_token_env"), "Content-Type": "application/json"})
         if r is not None and r.status_code in (200, 201):
             a = r.json().get("article") or {}
-            return DeliveryResult(ok=True, status_code=r.status_code, attempts=n, provider_id=str(a.get("admin_graphql_api_id") or a.get("id", ""))[:300])
+            return DeliveryResult(ok=True, status_code=r.status_code, attempts=n, provider_id=str(a.get("admin_graphql_api_id") or a.get("id", ""))[:300], publishes=not cfg.get("draft", False))
         hint = {401: "Admin API token rejected", 403: "the token lacks write_content", 404: "blog_id not found in this store"}.get(r.status_code if r is not None else 0, "")
         return failure(r, n, err, hint)
 
