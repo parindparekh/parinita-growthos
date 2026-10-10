@@ -62,7 +62,43 @@ class TikTokAdapter(Adapter):
             return "config.privacy_level must be a TikTok privacy level"
         return ""
 
+    def _video(self, payload, cfg):
+        from urllib.parse import urlsplit
+        from ..short_video import render_short_video
+        from ..netguard import safe_request
+        if cfg.get("direct_post"):
+            return DeliveryResult(ok=False, detail="Generated video uses creator inbox review; disable direct_post")
+        try:
+            video = render_short_video(payload)
+        except ValueError as exc:
+            return DeliveryResult(ok=False, detail=str(exc))
+        size = len(video)
+        r, n, err = call("POST", base_url("tiktok", "https://open.tiktokapis.com") + "/v2/post/publish/inbox/video/init/",
+            idempotent=False, headers={"Authorization": f"Bearer {secret(cfg, 'access_token_env')}", "Content-Type":"application/json"},
+            json={"source_info":{"source":"FILE_UPLOAD", "video_size":size, "chunk_size":size, "total_chunk_count":1}})
+        if r is None or r.status_code != 200:
+            return failure(r,n,err,"TikTok video.upload authorization is required")
+        try:
+            result = r.json()
+            data = result.get("data") or {}
+            upload_url = data.get("upload_url", "")
+            parsed = urlsplit(upload_url)
+            valid = (parsed.scheme == "https" and parsed.hostname == "open-upload.tiktokapis.com"
+                     and not parsed.username and not parsed.password and parsed.port in (None,443))
+            if result.get("error",{}).get("code") != "ok" or not valid or not data.get("publish_id"):
+                return DeliveryResult(ok=False, detail="TikTok did not return a valid video upload session")
+            uploaded = safe_request("PUT",upload_url,content=video,headers={"Content-Type":"video/mp4",
+                "Content-Length":str(size),"Content-Range":f"bytes 0-{size-1}/{size}"})
+        except Exception:
+            return DeliveryResult(ok=False, detail="TikTok video transfer could not be confirmed; check the creator inbox before retrying")
+        if uploaded.status_code not in (200,201):
+            return failure(uploaded,1,"","Video transfer failed; check the creator inbox before retrying")
+        return DeliveryResult(ok=True,status_code=uploaded.status_code,publishes=False,
+            provider_id=str(data["publish_id"])[:300],detail="15-second video uploaded for TikTok processing. Open TikTok inbox to review and complete posting.")
+
     def send(self, payload, endpoint, cfg, idempotency_key, resume=""):
+        if cfg.get("media_type") == "video":
+            return self._video(payload, cfg)
         imgs = _images(payload, cfg)
         if not imgs:
             return DeliveryResult(ok=False, detail="TikTok photo posts need public https images: set metadata.public.image_urls (or image_url) on the release")

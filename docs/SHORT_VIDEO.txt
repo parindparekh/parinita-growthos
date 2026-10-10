@@ -1,0 +1,27 @@
+TikTok short video and podcast scope
+
+POST /v1/content/{id}/video creates an authenticated, downloadable preview from
+release title, summary/body and CTA. The console offers Create 15-second video.
+The initial renderer uses three five-second caption cards, 720x1280, 30 fps,
+H.264 MP4. It is silent: no generated footage, narration or licensed music.
+FFmpeg with drawtext and libx264 support is required. The Dockerfile installs
+FFmpeg and fonts. Local operators may set FFMPEG_BINARY to an installed binary.
+Rendering uses temporary files, a timeout and one concurrent render per process.
+
+New TikTok destinations default to media_type=video. The governed delivery
+path creates the clip and transfers it with the destination's credential to
+the TikTok creator inbox using video.upload. The creator must open TikTok to
+review and complete publication. A successful transfer is not marked published.
+No live TikTok account transfer has been verified. Existing photo destinations
+retain their behavior; explicitly set media_type=video to switch them.
+
+Each company needs its own source connections and destination credentials.
+Credential references alone do not implement tenant isolation. The current
+application still needs company-scoped identity and account onboarding before
+hosting unrelated companies in one instance.
+
+GrowthOS handles audio podcast scripts, audio generation through an authorized
+voice provider, and distribution via podcast RSS and connected hosting accounts.
+Spotify and Apple show submission/ownership verification is separate.
+Video podcasts are created in AI Studio. An automatic AI Studio handoff is not
+implemented until its service contract and authorization are available.

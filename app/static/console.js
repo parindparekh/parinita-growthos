@@ -412,7 +412,14 @@ function sheet() {
   const voice = v && v.rendered_hash === item.content_hash && audioPath && audioPath.startsWith("/media/") ? h("section", {}, h("h2", {}, "Voice"),
     h("audio", { controls: true, preload: "none", src: audioPath }),
     h("p", { class: "note" }, `Rendered by Vaak as ${v.twin_id}. Manifest ${String(v.manifest_hash).slice(0, 16)}${v.anchored_root ? ", anchored" : ", not anchored"}.`)) : null;
-  return h("aside", { class: "sheet", "aria-label": "Release status" }, verdict, evidence, approvalBox, send, voice, history);
+  const shortVideo = can("editor") ? h("button", {class:"btn", type:"button", onclick:()=>act(async()=>{
+    const headers = S.key ? {"X-API-Key":S.key} : {"X-CSRF-Token":S.me?.csrf || ""};
+    const response = await fetch(`/v1/content/${encodeURIComponent(item.id)}/video`, {method:"POST", headers, credentials:"same-origin"});
+    if(!response.ok) { const error=await response.json(); throw new Error(error.detail || "Video creation failed"); }
+    const url=URL.createObjectURL(await response.blob()); const a=document.createElement("a");
+    a.href=url; a.download="growthos-15s.mp4"; a.click(); setTimeout(()=>URL.revokeObjectURL(url),60000);
+  },"15-second video downloaded. Review it before upload.")}, "Create 15-second video") : null;
+  return h("aside", { class: "sheet", "aria-label": "Release status" }, shortVideo, verdict, evidence, approvalBox, send, voice, history);
 }
 
 function viewReleases() {

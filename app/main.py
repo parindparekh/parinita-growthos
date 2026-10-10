@@ -1003,3 +1003,17 @@ def chrysalis_attest_release(content_id: str, db: Session = Depends(get_db),
     except Exception as exc:  # noqa: BLE001 - transport/provider detail stays on the anchor row and audit chain
         raise HTTPException(502, f"Chrysalis release attestation failed: {type(exc).__name__}")
     return chrysalis_view(row)
+
+
+@app.post("/v1/content/{content_id}/video")
+def create_short_video(content_id: str, db: Session = Depends(get_db),
+                       p: Principal = Depends(require_role("editor"))):
+    from .short_video import render_short_video
+    item = _content(db, content_id)
+    try:
+        video = render_short_video(serialize(item))
+    except ValueError as exc:
+        raise HTTPException(503, str(exc))
+    return Response(video, media_type="video/mp4", headers={
+        "Content-Disposition": 'attachment; filename="growthos-15s.mp4"',
+        "Cache-Control": "no-store"})

@@ -32,7 +32,7 @@ SPECS = [
     ("instagram", "Instagram", "Social", "ig_user_id access_token_env", "Professional account and a public HTTPS image on the release are required."),
     ("threads", "Threads", "Social", "user_id access_token_env", "Text container followed by publish; account permission required."),
     ("pinterest", "Pinterest", "Social", "board_id bearer_token_env", "Requires pins:write and a public image on the release."),
-    ("tiktok", "TikTok photos", "Social", "access_token_env", "Photo uploads only. Defaults to creator review; source image domain must be verified."),
+    ("tiktok", "TikTok video / photos", "Social", "access_token_env", "Creates a 15-second vertical video for creator inbox review. Photo mode remains available in advanced settings."),
     ("tumblr", "Tumblr", "Social", "blog bearer_token_env", "Uses Neue Post Format."),
     ("lemmy", "Lemmy", "Social", "community_id username password_env", "Use your instance URL."),
     ("slack", "Slack", "Messaging", "channel bearer_token_env", "Invite the bot to the channel; chat:write scope required."),
@@ -73,6 +73,8 @@ def catalogue():
         defaults = {}
         if protocol in {"devto", "ghost", "buttondown", "mailchimp", "shopify"}:
             defaults["draft"] = True
+        if protocol == "tiktok":
+            defaults["media_type"] = "video"
         if protocol == "wordpress":
             defaults["status"] = "draft"
         if protocol in {"transistor", "buzzsprout"}:
