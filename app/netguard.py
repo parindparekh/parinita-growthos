@@ -70,7 +70,14 @@ def secret_from_env(name: str) -> str:
     endpoint configuration cannot be used to exfiltrate arbitrary process environment."""
     if not SECRET_ENV_PATTERN.match(name or ""):
         raise DestinationBlocked("secret env names must match GROWTHOS_SECRET_[A-Z0-9_]+")
-    return os.getenv(name, "")
+    value = os.getenv(name, "")
+    if value:
+        return value
+    from .credentials import read_saved_secret
+    try:
+        return read_saved_secret(name)
+    except ValueError as exc:
+        raise DestinationBlocked(str(exc)) from None
 
 
 def redact_destination_error(message: str, config: dict) -> str:

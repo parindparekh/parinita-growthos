@@ -125,6 +125,7 @@ def validate_token(token: str, *, audience: str, nonce: str | None = None) -> di
         raise SSOError(f"token rejected: {type(exc).__name__}") from exc
     if nonce is not None and not hmac.compare_digest(str(claims.get("nonce", "")), nonce):
         raise SSOError("token rejected: nonce mismatch")
+    assert_company(claims)
     return claims
 
 
@@ -133,6 +134,14 @@ def _dig(claims: dict, path: str):
     for part in path.split("."):
         node = node.get(part) if isinstance(node, dict) else None
     return node
+
+
+def assert_company(claims: dict) -> None:
+    if not settings.company_id:
+        return  # legacy single-workspace deployment; no cross-company membership claim
+    value = _dig(claims, settings.oidc_company_claim)
+    if not isinstance(value, str) or not hmac.compare_digest(value.encode(), settings.company_id.encode()):
+        raise SSOError("This identity does not belong to this company workspace")
 
 
 def roles_from_claims(claims: dict) -> frozenset[str]:
@@ -179,6 +188,10 @@ def _access_token_roles(access_token, sub: str) -> frozenset[str]:
     except (SSOError, jwt.PyJWTError):
         return frozenset()
     if claims.get("azp") != settings.oidc_client_id or str(claims.get("sub")) != sub:
+        return frozenset()
+    try:
+        assert_company(claims)
+    except SSOError:
         return frozenset()
     return roles_from_claims(claims)
 
@@ -236,10 +249,13 @@ def complete_login(code: str, state: str, flow_cookie: str) -> tuple[str, str]:
     claims = validate_token(id_token, audience=settings.oidc_client_id, nonce=flow["nonce"])
     roles = roles_from_claims(claims) | _access_token_roles(tokens.get("access_token"), str(claims["sub"]))
     session = _sign({"sub": str(claims["sub"]), "name": name_from_claims(claims),
-                     "roles": sorted(roles), "csrf": secrets.token_urlsafe(24)},
+                     "company_id": settings.company_id, "roles": sorted(roles), "csrf": secrets.token_urlsafe(24)},
                     settings.session_ttl_seconds)
     return session, flow.get("next", "/console")
 
 
 def read_session(cookie: str) -> dict:
-    return _unsign(cookie)
+    session = _unsign(cookie)
+    if settings.company_id and session.get("company_id") != settings.company_id:
+        raise SSOError("Session belongs to another company workspace")
+    return session

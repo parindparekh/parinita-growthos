@@ -1,0 +1,12 @@
+# One namespace, database, identity client and runtime Secret per company.
+# Merge with your image/ingress production values. Never store secret values here.
+env:
+  COMPANY_ID: replace-with-verified-org-id
+  COMPANY_NAME: Replace with company name
+  OIDC_COMPANY_CLAIM: org_id
+  OIDC_ISSUER: https://identity.example.com/realms/company
+  OIDC_CLIENT_ID: growthos-company
+  API_KEYS_ENABLED: "false"
+existingSecret: growthos-company-runtime
+# Runtime Secret: DATABASE_URL, SESSION_SECRET, OIDC_CLIENT_SECRET (if required),
+# CONNECTOR_ENCRYPTION_KEY, TEXT_MODEL_API_KEY and any server-managed credentials.

@@ -42,7 +42,7 @@ from .schemas import (AEOProbeCreate, AEOProbeRun, AEOQueryCreate, AgentRunReque
                       ScheduleCreate, MediaContactCreate, MediaCoverageCreate, OpportunityStateUpdate, ClaimObservationCreate)
 from .security import Principal, authenticate, optional_principal, require_human, require_role
 
-VERSION = "1.9.1"
+VERSION = "1.9.2"
 STATIC = Path(__file__).parent / "static"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -218,6 +218,7 @@ def auth_config(p: Principal | None = Depends(optional_principal)):
     me = {"principal": p.name, "roles": sorted(p.roles), "source": p.source, "csrf": p.csrf} if p else None
     return {"sso": settings.sso_enabled, "sso_label": "Witness" if settings.is_witness else "your company account",
             "api_keys": bool(settings.parsed_keys()), "version": VERSION,
+            "company_name": settings.company_name, "company_id": settings.company_id,
             "approvals_need_sso": settings.approvals_need_sso, "waiver_role": settings.gate_waiver_role, "me": me}
 
 
@@ -1017,3 +1018,10 @@ def create_short_video(content_id: str, db: Session = Depends(get_db),
     return Response(video, media_type="video/mp4", headers={
         "Content-Disposition": 'attachment; filename="growthos-15s.mp4"',
         "Cache-Control": "no-store"})
+
+
+from .workspace import router as workspace_router
+app.include_router(workspace_router)
+
+from .credentials import router as credential_router
+app.include_router(credential_router)

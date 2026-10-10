@@ -1,0 +1,45 @@
+Company workspaces - GrowthOS 1.9.2
+
+Deployment model
+Each unrelated company receives its own namespace, GrowthOS release, database
+and database credentials, runtime Secret, media storage, HTTPS hostname and
+identity client. This version does not offer shared-database multi-tenancy or
+self-service cloud provisioning. Do not use the same database for two companies.
+Use deploy/values-company.example.yaml alongside the production values.
+
+Identity
+Set COMPANY_ID to the organization's stable identity claim and COMPANY_NAME to
+its display name. OIDC_COMPANY_CLAIM defaults to org_id; dotted paths work.
+ID and API access tokens must contain the matching scalar company claim.
+Tokens from another company are rejected even if their roles include admin.
+Sessions carry company identity and become invalid if workspace identity changes.
+Disable bootstrap keys with API_KEYS_ENABLED=false after SSO is verified.
+Use separate signing secrets and API credentials for each company.
+The Company setup page summarizes configuration; it does not certify deployment.
+
+Credentials
+Generate a Fernet encryption key with cryptography.fernet.Fernet.generate_key()
+and provision it as CONNECTOR_ENCRYPTION_KEY in the runtime Secret. Keep the
+key outside the application database and back it up through your secret manager.
+It must never appear in Helm ConfigMaps or public repository files.
+Admins can save/rotate tokens in Destinations > Account credentials. The API
+never returns plaintext; the database stores authenticated ciphertext bound to
+COMPANY_ID. Credential changes are audited by name only. Deleting a credential
+prevents subsequent resolutions but cannot revoke already-issued provider tokens.
+Server-managed environment variables take precedence and cannot be overwritten
+from the console. Provider-side revocation and OAuth app approval remain external.
+Do not change COMPANY_ID or the encryption key without a planned credential
+migration: existing ciphertext intentionally will not unlock under another company.
+The local launcher generates a git-ignored vault key in data/local on first use.
+
+Sources and drafting
+Add inbound RSS/Atom/JSON feeds with their URLs and sync them. In Drafting studio,
+select imported material or earlier releases to populate the brief. Source text
+is input to drafting, not proof of factual accuracy or permission to republish.
+Review claims before approval. Configure each destination with this company's
+account IDs and saved credential references. Each new destination starts disabled.
+
+Production acceptance still requires actual infrastructure and accounts:
+working SSO, DNS/TLS, database/media restore, model access, authorized provider
+send tests, and Studio deployment for video podcast creation. Mock tests do not
+prove provider account permissions. No account or domain is created automatically.

@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     app_name: str = "Parinita GrowthOS"
     environment: str = "development"
 
+    # Each deployed workspace belongs to one company and a dedicated database.
+    company_id: str = ""
+    company_name: str = ""
+    connector_encryption_key: str = ""
+    oidc_company_claim: str = "org_id"
+
     # --- identity -----------------------------------------------------------
     # API_KEY is the bootstrap admin credential. In production it cannot record
     # human approvals; approvals need a named key from API_KEYS with the
@@ -243,6 +249,12 @@ class Settings(BaseSettings):
         return out
 
     def validate_runtime(self) -> None:
+        if self.connector_encryption_key:
+            from cryptography.fernet import Fernet
+            try:
+                Fernet(self.connector_encryption_key.encode())
+            except Exception as exc:
+                raise ConfigError("CONNECTOR_ENCRYPTION_KEY must be a valid Fernet key") from exc
         keys = self.parsed_keys()
         if not keys and not self.sso_enabled:
             raise ConfigError("No API credentials configured. Set API_KEY and/or API_KEYS, or configure OIDC.")

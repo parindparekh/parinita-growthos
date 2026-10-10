@@ -80,6 +80,7 @@ async function refresh() {
   await loadQueue();
   S.feeds = await api("/v1/feeds");
   S.connectors = await api("/v1/connectors");
+  S.credentialVault = can("admin") ? await api("/v1/connector-credentials") : null;
   S.connectorReadiness = can("admin") ? await api("/v1/connectors/readiness") : null;
   if (S.sel && S.items.some((i) => i.id === S.sel)) {
     await loadDetail(S.sel);
@@ -117,10 +118,10 @@ function viewSignIn() {
 // ---------------------------------------------------------------- frame
 function bar() {
   const nav = h("nav", { "aria-label": "Sections" },
-    ...[["overview", "Overview", "◫"], ["create", "Drafting studio", "✎"], ["brand", "Brand voice", "◎"], ["releases", "Releases", "▤"], ["podcast", "Podcast", "◉"], ["intelligence", "Intelligence", "◈"], ["agents", "Agents", "✧"], ["destinations", "Destinations", "↗"], ["audit", "Audit", "☷"]].map(([v, label, icon]) =>
+    ...[["overview", "Overview", "◫"], ...(can("admin") ? [["setup", "Company setup", "⚙"]] : []), ["create", "Drafting studio", "✎"], ["brand", "Brand voice", "◎"], ["releases", "Releases", "▤"], ["podcast", "Podcast", "◉"], ["intelligence", "Intelligence", "◈"], ["agents", "Agents", "✧"], ["destinations", "Destinations", "↗"], ["audit", "Audit", "☷"]].map(([v, label, icon]) =>
       h("button", { type: "button", "aria-current": S.view === v ? "page" : null, onclick: () => navigate(v) }, h("span", { class: "nav-icon", "aria-hidden": "true" }, icon), label)));
   return h("header", { class: "bar" }, h("div", { class: "brand" }, "parinita", h("span", {}, "GROWTH OS")),
-    h("div", { class: "workspace-label" }, h("span", { class: "workspace-avatar", "aria-hidden": "true" }, "P"), h("div", {}, "Growth workspace", h("small", {}, "Communications & growth"))),
+    h("div", { class: "workspace-label" }, h("span", { class: "workspace-avatar", "aria-hidden": "true" }, "P"), h("div", {}, S.cfg.company_name || "Growth workspace", h("small", {}, "Communications & growth"))),
     h("p", { class: "nav-label" }, "WORKSPACE"), nav,
     h("div", { class: "side-message" }, h("strong", {}, "One release. One proof path."), h("p", {}, "Human authority at every gate.")),
     h("div", { class: "who" }, h("strong", { title: S.me.principal }, S.me.principal), h("span", {}, S.me.roles.join(", ") || "no role assigned"),
@@ -133,6 +134,7 @@ const notices = () => [S.err ? h("p", { class: "error", role: "alert" }, S.err) 
 function navigate(v) {
   return act(async () => { S.view = v; if (v === "audit") await loadAudit(); else if (v === "intelligence") await loadIntelligence();
     else if (v === "agents") S.agents = await api("/v1/agents");
+    else if (v === "setup") S.setup = await api("/v1/workspace/setup");
     else if (v === "brand") S.brand = await api("/v1/drafting/brand");
     else if (v === "create" || v === "podcast") { S.draftFormat = v === "podcast" ? "podcast" : (S.draftFormat || "press_release"); S.drafting = null; S.drafting = await api("/v1/drafting/status"); }
     else await refresh(); });
@@ -142,11 +144,21 @@ function openRelease(id) { return act(async () => { S.view = "releases"; S.creat
   S.tab = (TABS.find(([, , states]) => states.includes(S.detail.item.state)) || TABS[0])[0]; }); }
 const eyebrow = (text) => h("p", { class: "eyebrow" }, text);
 function topstrip() {
-  const labels = { overview: "Overview", create: "Drafting studio", brand: "Brand voice", podcast: "Podcast studio", releases: "Release desk", intelligence: "Intelligence", agents: "Agent directory", destinations: "Distribution", audit: "Audit trail" };
+  const labels = { setup: "Company setup", overview: "Overview", create: "Drafting studio", brand: "Brand voice", podcast: "Podcast studio", releases: "Release desk", intelligence: "Intelligence", agents: "Agent directory", destinations: "Distribution", audit: "Audit trail" };
   return h("div", { class: "topstrip" }, h("div", {}, h("span", {}, "Workspace"), h("span", { class: "crumb-divider" }, "/"), h("strong", {}, labels[S.view])),
     h("div", { class: "row" }, h("span", { class: "connection-badge" }, location.hostname === "127.0.0.1" || location.hostname === "localhost" ? "Local workspace" : "Connected workspace"),
       h("button", { class: "btn quiet", type: "button", onclick: () => navigate(S.view), "aria-label": "Refresh workspace" }, "↻ Refresh")));
 }
+function viewSetup() {
+  const setup = S.setup;
+  const actions = {credentials:["Manage account credentials","destinations"],brand:["Set brand voice","brand"],sources:["Connect source feeds","destinations"],destinations:["Connect accounts","destinations"],model:["Open drafting studio","create"]};
+  return h("div",{class:"page"},h("h1",{},setup?.company_name || "Company setup"), ...notices(),
+    h("p",{},"Set up this company's sources, brand voice and distribution accounts."),
+    h("div",{class:"metrics"},...(setup?.checks || []).map(c=>h("section",{class:"panel"},h("h2",{},c.label),
+      h("strong",{},c.ready?"Configured":"Needs setup"),h("p",{},c.detail),actions[c.id]?h("button",{class:"btn",type:"button",onclick:()=>navigate(actions[c.id][1])},actions[c.id][0]):null))),
+    h("p",{class:"note"},"Configured means settings are present. Confirm account access, test delivery, and complete production checks before launch."));
+}
+
 function viewOverview() {
   const working = S.items.filter(i => ["draft", "blocked"].includes(i.state)).length;
   const ready = S.items.filter(i => i.state === "approved").length;
@@ -210,6 +222,12 @@ function viewCreation() {
       h("h2", {}, S.reviseSource ? "Create another version" : "Your brief"),
       h("p", {class:"note"}, S.reviseSource ? "Your original draft is preserved. Describe what the next version should change." : `${S.drafting?.specialists?.[S.draftFormat]?.agent || "Your specialist"} writes this format using your saved brand voice.`),
       field("brief-goal", "What should this content achieve?", h("textarea", { id: "brief-goal", rows: "3", minlength: "10", maxlength: "6000", required: true, placeholder: "Describe the announcement, message or episode you want to create…" }, S.reviseSource?.metadata?.drafting?.brief || "")),
+      field("source-library", "Use material already in your workspace", h("select",{id:"source-library",onchange:e=>{
+        const source=S.items.find(x=>x.id===e.target.value);const box=document.getElementById("brief-sources");
+        if(source && box){const addition=`${source.title}\n${source.body}\nSource: ${source.source || source.id}`;
+          if(box.value.length+addition.length+2>24000){S.err="Source material exceeds 24,000 characters. Shorten it before adding another item.";render();return;}
+          box.value += (box.value?"\n\n":"")+addition;}e.target.value="";
+      }},h("option",{value:""},"Choose a source or previous release"),...S.items.map(x=>h("option",{value:x.id},x.title)))),
       field("brief-sources", "Facts and source material", h("textarea", { id: "brief-sources", rows: "6", minlength: "10", maxlength: "24000", required: true, placeholder: "Paste the confirmed facts, product notes or supporting material. Include source references where available. Links alone are not fetched." }, S.reviseSource?.metadata?.drafting?.source_material || "")),
       h("div", { class: "draft-options" }, field("brief-audience", "Who is this for?", h("input", { id: "brief-audience", type: "text", maxlength: "500", placeholder: "For example: customers, journalists or podcast listeners" })),
         field("brief-tone", "Tone", h("select", { id: "brief-tone" }, ...["professional", "conversational", "concise"].map(t => h("option", { value: t }, t[0].toUpperCase() + t.slice(1))))),
@@ -442,6 +460,7 @@ function connectorForm() {
     return h("div",{class:"field"},h("label",{for:`connector-${f.key}`},label + (f.required ? " *" : "")),
       h("input",{id:`connector-${f.key}`,type:"text",value:config[f.key] ?? "",required:f.required,
         pattern:f.secret_reference?"GROWTHOS_SECRET_[A-Z0-9_]+":null,
+        list:f.secret_reference?"saved-credential-names":null,
         placeholder:f.secret_reference?`GROWTHOS_SECRET_${selected.toUpperCase()}_${f.key.replace(/_env$/, "").toUpperCase()}`:""}));
   });
   const advanced = Object.fromEntries(Object.entries(config).filter(([k])=>!spec.fields.some(f=>f.key===k)));
@@ -456,6 +475,7 @@ function connectorForm() {
     S.editDestination=null; await refresh();
   },editing?"Destination settings updated.":"Destination saved, switched off. Review readiness before enabling it.");}},
     h("h2",{},editing?`Edit ${editing.name}`:"Add a destination"),
+    h("datalist",{id:"saved-credential-names"},...(S.credentialVault?.credentials||[]).map(c=>h("option",{value:c.name}))),
     h("div",{class:"draft-options"},
       h("div",{class:"field"},h("label",{for:"dest-type"},"Destination type"),h("select",{id:"dest-type",disabled:!!editing,onchange:e=>{S.connectorType=e.target.value;render();}},
         ...(S.connectors||[]).map(c=>h("option",{value:c.protocol,selected:c.protocol===selected},`${c.group} · ${c.name}`)))),
@@ -468,9 +488,25 @@ function connectorForm() {
     h("div",{class:"draft-options"},...fields),
     h("details",{},h("summary",{},"Advanced settings"),h("p",{class:"note"},"Additional provider options and destination policy. Use variable names for credentials, never secret values."),
       h("div",{class:"field"},h("label",{for:"dest-advanced"},"Provider settings (JSON)"),h("textarea",{id:"dest-advanced",rows:"6",spellcheck:"false"},JSON.stringify(advanced,null,2)))),
-    h("p",{class:"note"},"Credentials are provisioned in the server or Kubernetes Secret. Saving never sends a message. Configuration checks do not verify live account permissions or token expiry."),
+    h("p",{class:"note"},"Save credentials in Account credentials above, or use server-managed credential names. Saving never sends a message. Configuration checks do not verify live account permissions or token expiry."),
     h("div",{class:"row"},h("button",{type:"submit",class:"btn primary"},"Save destination"),editing?h("button",{type:"button",class:"btn",onclick:()=>{S.editDestination=null;render();}},"Cancel editing"):null));
   return form;
+}
+
+function credentialForm() {
+  if(!can("admin")) return null;
+  const vault=S.credentialVault;
+  return h("section",{class:"panel"},h("h2",{},"Account credentials"),
+    h("p",{},"Save this company's account token, then select its credential name in the destination settings. Saved values cannot be read back."),
+    !vault?.storage_configured?h("p",{class:"note"},"Secure credential storage needs to be enabled by your workspace operator."):h("form",{onsubmit:e=>{
+      e.preventDefault();const name=val("credential-name");const input=document.getElementById("credential-value");const value=input.value;input.value="";
+      act(async()=>{await api("/v1/connector-credentials",{method:"PUT",body:{name,value}});await refresh();},"Credential saved securely. It is available to this workspace's connectors.");
+    }},h("div",{class:"field"},h("label",{for:"credential-name"},"Credential name"),h("input",{id:"credential-name",type:"text",required:true,pattern:"GROWTHOS_SECRET_[A-Z0-9_]+",placeholder:"GROWTHOS_SECRET_COMPANY_TIKTOK"})),
+       h("div",{class:"field"},h("label",{for:"credential-value"},"Account token or secret"),h("input",{id:"credential-value",type:"password",required:true,autocomplete:"new-password",maxlength:"20000"})),
+       h("button",{class:"btn",type:"submit"},"Save credential")),
+    h("ul",{},...(vault?.credentials||[]).map(c=>h("li",{},c.name," ",h("button",{class:"btn",type:"button",onclick:()=>act(async()=>{
+      await api(`/v1/connector-credentials/${encodeURIComponent(c.name)}`,{method:"DELETE"});await refresh();
+    },"Credential removed. Destinations that need it cannot send until reconnected.")},"Disconnect")))));
 }
 
 function viewDestinations() {
@@ -496,7 +532,7 @@ function viewDestinations() {
     can("admin")?h("button",{class:"btn",type:"button",onclick:()=>act(refresh,"Configuration readiness refreshed. No messages were sent.")},"Check configuration"):null,
     S.connectorReadiness?h("div",{class:"metrics"},...S.connectorReadiness.services.map(s=>metric(s.name,s.configured?"Configured":"Needs setup","Live acceptance still required"))):null,
     rows.length?h("div",{class:"tablewrap"},h("table",{},h("thead",{},h("tr",{},...["Name","Connector","Direction","Readiness","Feed","Actions"].map(t=>h("th",{},t)))),h("tbody",{},...rows))):h("p",{class:"empty"},"No destinations yet. Choose a connector below."),
-    connectorForm());
+    credentialForm(), connectorForm());
 }
 
 // ---------------------------------------------------------------- intelligence
@@ -567,7 +603,7 @@ function render() {
   lastContext = context;
   root.replaceChildren();
   if (!S.me) { root.append(viewSignIn()); return; }
-  const content = ["create", "podcast"].includes(S.view) ? viewCreation() : S.view === "brand" ? viewBrand() : S.view === "overview" ? viewOverview() : S.view === "agents" ? viewAgents() : S.view === "releases" ? viewReleases() : S.view === "destinations" ? viewDestinations() : S.view === "intelligence" ? viewIntelligence() : viewAudit();
+  const content = ["create", "podcast"].includes(S.view) ? viewCreation() : S.view === "setup" ? viewSetup() : S.view === "brand" ? viewBrand() : S.view === "overview" ? viewOverview() : S.view === "agents" ? viewAgents() : S.view === "releases" ? viewReleases() : S.view === "destinations" ? viewDestinations() : S.view === "intelligence" ? viewIntelligence() : viewAudit();
   root.append(bar(), h("main", { class: "workspace-main" }, topstrip(), content));
   for (const [id, value] of Object.entries(typed)) { const el = document.getElementById(id); if (el) el.value = value; }
   if (focused && typed[focused] !== undefined) document.getElementById(focused)?.focus();

@@ -41,11 +41,11 @@ def validate():
             else:
                 assert dep['spec']['replicas'] == 1 and dep['spec']['strategy']['type'] == 'Recreate'
     for extra in [["--set", "existingSecret="], ["--set", "publicBaseUrl=http://unsafe.example"],
-                  ["--set", "env.API_KEY=forbidden"], ["--set", "podDisruptionBudget.enabled=true"],
+                  ["--set", "env.API_KEY=forbidden"], ["--set", "env.CONNECTOR_ENCRYPTION_KEY=forbidden"], ["--set", "podDisruptionBudget.enabled=true"],
                   ["--set", "ingress.enabled=true"], ["--set", "postgresql.enabled=true"],
                   ["--set", "image.tag="]]:
         render(extra, success=False)
-    print("PASS: four deployment variants; seven invalid configurations rejected; secret, service, probe and worker checks.")
+    print("PASS: four deployment variants; eight invalid configurations rejected; secret, service, probe and worker checks.")
 
 
 if __name__ == "__main__":

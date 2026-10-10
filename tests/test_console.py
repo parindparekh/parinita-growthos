@@ -210,7 +210,7 @@ def test_connector_setup_edit_and_readiness(client, live_server, page, monkeypat
     sign_in_with_key(page, live_server, BOOT['X-API-Key'])
     page.get_by_role('button', name='Destinations', exact=True).click()
     page.locator('#dest-type').wait_for()
-    assert page.locator('#dest-type option').count() == 41
+    assert page.locator('#dest-type option').count() == 42
     page.get_by_label('Destination type').select_option('slack')
     page.get_by_label('Destination name', exact=True).fill('Team updates')
     page.get_by_label('Short identifier', exact=True).fill('team-updates')
@@ -229,4 +229,26 @@ def test_connector_setup_edit_and_readiness(client, live_server, page, monkeypat
     page.get_by_role('button', name='Check configuration', exact=True).click()
     page.get_by_text('Configuration readiness refreshed.', exact=False).wait_for()
     assert page.get_by_role('button', name='Turn on', exact=True).is_enabled()
+    assert page.console_errors == []
+
+
+def test_company_setup_and_encrypted_credential_entry(client, live_server, page, monkeypatch):
+    from cryptography.fernet import Fernet
+    from app.config import settings
+    from app.netguard import secret_from_env
+    monkeypatch.setattr(settings, "connector_encryption_key", Fernet.generate_key().decode())
+    sign_in_with_key(page, live_server, BOOT['X-API-Key'])
+    page.get_by_role('button', name='Company setup', exact=True).click()
+    page.get_by_role('heading', name='Secure account storage', exact=True).wait_for()
+    page.get_by_role('button', name='Manage account credentials', exact=True).click()
+    page.get_by_label('Credential name', exact=True).fill('GROWTHOS_SECRET_UI_VAULT')
+    page.get_by_label('Account token or secret', exact=True).fill('synthetic-ui-credential')
+    page.get_by_role('button', name='Save credential', exact=True).click()
+    page.get_by_text('Credential saved securely.', exact=False).wait_for()
+    assert page.get_by_label('Account token or secret', exact=True).input_value() == ''
+    assert 'synthetic-ui-credential' not in page.locator('body').inner_text()
+    assert secret_from_env('GROWTHOS_SECRET_UI_VAULT') == 'synthetic-ui-credential'
+    page.get_by_role('button', name='Disconnect', exact=True).click()
+    page.get_by_text('Credential removed.', exact=False).wait_for()
+    assert secret_from_env('GROWTHOS_SECRET_UI_VAULT') == ''
     assert page.console_errors == []

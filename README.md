@@ -1,4 +1,4 @@
-# Parinita GrowthOS v1.9.1
+# Parinita GrowthOS v1.9.2
 
 ## Connector hardening update
 
@@ -167,3 +167,7 @@ The checked-in CI workflow defines SQLite and PostgreSQL 16 checks plus containe
 
 The current source includes Denizen-backed drafting, brand voice, four-format campaign generation, editorial review, and a Kubernetes Helm chart. See [Kubernetes deployment](docs/KUBERNETES.md) for installation and [1.9 verification](evidence/GROWTHOS_1.9_VERIFICATION.md) for tested behavior and remaining limitations.
 
+
+## Company workspaces (1.9.2)
+
+Company setup, company membership checks for OIDC sign-in, an encrypted connector credential vault, and source selection in drafting are now available. Each company uses a dedicated deployment and database; shared-database multi-tenancy and automatic cloud provisioning are not implemented. See [company workspace setup](docs/COMPANY_WORKSPACES.txt). Live account connections, identity configuration, cluster deployment and AI Studio generation require the actual services and company authorization.

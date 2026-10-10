@@ -1,3 +1,11 @@
+## 1.9.2
+
+- Add company setup, membership checks for OIDC tokens and sessions, and dedicated-workspace deployment settings.
+- Add encrypted account credential storage with admin-only save/rotate/delete and no plaintext readback.
+- Reuse workspace source material in drafting; include AI Studio handoff and 15-second TikTok video support.
+- Validate actual 15-second H.264 video rendering in the production container.
+- Live deployment, identity/provider authorization and AI Studio model readiness remain environment-specific acceptance requirements.
+
 ## 1.9.1 — Connector setup and production hardening
 
 All 37 outbound adapters and four feed formats are configurable from the console. Added configuration readiness checks, editable provider settings and a complete coverage register. Fixed empty-config validation bypass, malformed config handling, caller-forged server metadata, credential-bearing errors, draft-as-published reporting, HTML escaping and partial SMTP success reporting. Compose worker now mounts shared audio storage and exposes heartbeat health; CI boots the runtime stack. Target-cluster and live-account acceptance remain outstanding.

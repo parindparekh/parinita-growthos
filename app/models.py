@@ -278,3 +278,10 @@ class ChrysalisAnchor(Base):
     error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
     anchored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ConnectorCredential(Base):
+    __tablename__ = "connector_credentials"
+    name: Mapped[str] = mapped_column(String(150), primary_key=True)
+    encrypted_value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)

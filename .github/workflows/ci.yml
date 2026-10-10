@@ -88,6 +88,21 @@ jobs:
           except urllib.error.HTTPError as error:
               assert error.code == 401
           PYCODE
+      - name: Verify real 15-second video rendering in the production image
+        run: |
+          docker compose exec -T api python - <<'PYCODE'
+          import json, pathlib, subprocess, tempfile
+          from app.short_video import render_short_video
+          with tempfile.TemporaryDirectory() as folder:
+              path = pathlib.Path(folder) / "test.mp4"
+              path.write_bytes(render_short_video({"title":"Synthetic release", "summary":"Container video rendering acceptance check"}))
+              result = subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)])
+              metadata = json.loads(result)
+              stream = next(s for s in metadata["streams"] if s["codec_type"] == "video")
+              assert stream["codec_name"] == "h264"
+              assert (stream["width"], stream["height"]) == (720, 1280)
+              assert abs(float(metadata["format"]["duration"]) - 15) < 0.05
+          PYCODE
       - name: Stop disposable runtime
         if: always()
         run: docker compose down --volumes
