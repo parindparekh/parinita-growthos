@@ -6,7 +6,7 @@ env:
   OIDC_COMPANY_CLAIM: org_id
   OIDC_ISSUER: https://identity.example.com/realms/company
   OIDC_CLIENT_ID: growthos-company
-  API_KEYS_ENABLED: "false"
 existingSecret: growthos-company-runtime
 # Runtime Secret: DATABASE_URL, SESSION_SECRET, OIDC_CLIENT_SECRET (if required),
 # CONNECTOR_ENCRYPTION_KEY, TEXT_MODEL_API_KEY and any server-managed credentials.
+# Set API_KEYS_ENABLED=false in this Secret after verifying company SSO.

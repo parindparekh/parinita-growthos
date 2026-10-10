@@ -40,12 +40,18 @@ def validate():
                 assert c['livenessProbe']['httpGet']['path'] == '/live'
             else:
                 assert dep['spec']['replicas'] == 1 and dep['spec']['strategy']['type'] == 'Recreate'
+    company_docs = [d for d in render(["-f", str(ROOT / "deploy" / "values-company.example.yaml")]) if d]
+    company_config = next(d for d in company_docs if d["kind"] == "ConfigMap")["data"]
+    assert company_config["COMPANY_ID"] == "replace-with-verified-org-id"
+    assert "API_KEYS_ENABLED" not in company_config
+    for dep in (d for d in company_docs if d["kind"] == "Deployment"):
+        assert dep["spec"]["template"]["spec"]["containers"][0]["envFrom"][1]["secretRef"]["name"] == "growthos-runtime"
     for extra in [["--set", "existingSecret="], ["--set", "publicBaseUrl=http://unsafe.example"],
                   ["--set", "env.API_KEY=forbidden"], ["--set", "env.CONNECTOR_ENCRYPTION_KEY=forbidden"], ["--set", "podDisruptionBudget.enabled=true"],
                   ["--set", "ingress.enabled=true"], ["--set", "postgresql.enabled=true"],
                   ["--set", "image.tag="]]:
         render(extra, success=False)
-    print("PASS: four deployment variants; eight invalid configurations rejected; secret, service, probe and worker checks.")
+    print("PASS: five deployment variants including company onboarding; eight invalid configurations rejected; secret, service, probe and worker checks.")
 
 
 if __name__ == "__main__":
