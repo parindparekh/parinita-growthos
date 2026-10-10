@@ -112,7 +112,7 @@ def _endpoint_view(e: FeedEndpoint) -> dict:
 
 
 def _needs_url(protocol: str, direction: str, config: dict | None = None) -> bool:
-    if protocol in {"webhook", "rest_json", "mastodon", "wordpress", "mcp", "vaak", "lemmy", "shopify", "ghost", "matrix", "zulip"}:
+    if protocol in {"webhook", "rest_json", "mastodon", "wordpress", "mcp", "vaak", "ai_studio", "lemmy", "shopify", "ghost", "matrix", "zulip"}:
         return True
     if protocol == "pr_wire":
         return (config or {}).get("mode", "api") == "api"

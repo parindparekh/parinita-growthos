@@ -23,5 +23,5 @@ hosting unrelated companies in one instance.
 GrowthOS handles audio podcast scripts, audio generation through an authorized
 voice provider, and distribution via podcast RSS and connected hosting accounts.
 Spotify and Apple show submission/ownership verification is separate.
-Video podcasts are created in AI Studio. An automatic AI Studio handoff is not
-implemented until its service contract and authorization are available.
+Video podcasts are created in AI Studio. The AI Studio destination transfers approved episode scripts into Studio projects.
+Live rendering still needs a deployed Studio service, company authorization and models.

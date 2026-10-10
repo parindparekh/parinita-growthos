@@ -1,0 +1,25 @@
+AI Studio episode handoff
+
+Configure an AI Studio video podcast destination with the actual Studio service
+URL and a GROWTHOS_SECRET_* reference containing that company's producer token.
+Use a separate GrowthOS deployment/database and runtime Secret for each unrelated
+company until company-scoped identity and data isolation are implemented.
+The token must be issued for the intended Studio organization. Never share it
+between companies. Source content is sent only through the existing approved
+release delivery flow, not during setup or readiness checks.
+
+Delivery creates a Studio project, transfers the full episode script and records
+the project reference. Script-transfer failures retain that reference so retry
+uses the same project. Version checks avoid overwriting an edited Studio graph.
+After an ambiguous creation or script response, inspect Studio before retrying.
+A successful handoff does not mean a video was rendered or published.
+Studio remains responsible for model availability, render authorization, voice
+consent, production and review. GrowthOS does not mint render approvals.
+
+This implementation was tested with synthetic API responses. Live acceptance
+requires a running Studio endpoint, company producer credential, and working
+Studio models. No credentials or Studio service deployment are bundled.
+
+Podcast flow: company sources -> grounded episode script -> approved audio
+production -> podcast host/RSS distribution. Optional video podcast creation
+happens in AI Studio. Short TikTok clips use the separate short-video workflow.

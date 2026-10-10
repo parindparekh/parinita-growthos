@@ -56,9 +56,10 @@ SPECS = [
     ("buzzsprout", "Buzzsprout", "Podcast and voice", "podcast_id api_token_env", "Hosted audio required; creates an episode draft by default during setup."),
     ("pr_wire", "PR wire", "Publishing", "to?", "Configure either your contracted wire API or its email desk in advanced settings."),
     ("mcp", "MCP server", "Integration", "tool bearer_token_env?", "Use an authorised Streamable HTTP server and map release fields to tool arguments."),
+    ("ai_studio", "AI Studio video podcast", "Podcast and voice", "bearer_token_env", "Transfers the approved episode script to your company Studio account. Rendering and approvals happen in Studio."),
     ("vaak", "Parinita Vaak", "Podcast and voice", "twin_id bearer_token_env?", "Enrolled voice, consent and shared media storage are required. This renders audio without publishing it."),
 ]
-URL_REQUIRED = {"webhook", "rest_json", "mastodon", "wordpress", "mcp", "vaak", "lemmy", "shopify", "ghost", "matrix", "zulip"}
+URL_REQUIRED = {"webhook", "rest_json", "mastodon", "wordpress", "mcp", "vaak", "ai_studio", "lemmy", "shopify", "ghost", "matrix", "zulip"}
 FEEDS = {"rss", "atom", "jsonfeed", "podcast_rss"}
 
 

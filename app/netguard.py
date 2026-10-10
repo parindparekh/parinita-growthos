@@ -99,7 +99,7 @@ def clean_headers(headers: dict | None) -> dict[str, str]:
 
 
 PUSH_ONLY = {"webhook", "rest_json", "smtp", "linkedin", "x", "mastodon", "bluesky", "transistor", "buzzsprout", "pr_wire",
-             "slack", "teams", "discord", "telegram", "whatsapp", "wordpress", "mcp", "vaak",
+             "slack", "teams", "discord", "telegram", "whatsapp", "wordpress", "mcp", "vaak", "ai_studio",
              "reddit", "facebook", "instagram", "threads", "pinterest", "tiktok", "tumblr", "lemmy", "etsy", "shopify", "google_business", "devto", "ghost", "buttondown", "mailchimp", "google_chat", "mattermost", "matrix", "zulip"}
 
 

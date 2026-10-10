@@ -60,3 +60,5 @@ def register(adapter: Adapter) -> None:
 
 from . import webhook, smtp, social, podcast, pr_wire, messaging, whatsapp, cms, mcp_client, vaak  # noqa: E402,F401  (self-registering built-ins)
 from . import reddit, meta, social_more, commerce, publishing, messaging_more  # noqa: E402,F401  (v1.7 destinations)
+
+from . import ai_studio  # noqa: E402,F401

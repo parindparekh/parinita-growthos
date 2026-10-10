@@ -3,7 +3,7 @@
 // (never innerHTML): release copy and ingested feed items are untrusted input.
 
 const PUSH = new Set(["webhook", "rest_json", "smtp", "linkedin", "x", "mastodon", "bluesky", "transistor", "buzzsprout", "pr_wire",
-                      "slack", "teams", "discord", "telegram", "whatsapp", "wordpress", "mcp", "vaak",
+                      "slack", "teams", "discord", "telegram", "whatsapp", "wordpress", "mcp", "vaak", "ai_studio",
   "reddit", "facebook", "instagram", "threads", "pinterest", "tiktok", "tumblr", "lemmy", "etsy", "shopify", "google_business", "devto", "ghost", "buttondown", "mailchimp", "google_chat", "mattermost", "matrix", "zulip"]);
 const HIGH_RISK = new Set(["investor", "regulated", "legal", "health", "financial"]);
 const TABS = [["work", "Needs work", ["draft", "blocked"]], ["ready", "Ready", ["approved"]], ["sent", "Sent", ["published"]]];
