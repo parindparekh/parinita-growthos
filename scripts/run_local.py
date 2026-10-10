@@ -23,6 +23,11 @@ os.environ.update(ENVIRONMENT='development', API_KEY=key_file.read_text().strip(
                   DATABASE_URL='sqlite:///' + (data / 'growthos.db').as_posix(),
                   PUBLIC_BASE_URL='http://127.0.0.1:8080')
 
+# Local accounts are opt-in. Never inherit production credentials implicitly.
+# This directory is git-ignored; the file is provisioned privately by the operator.
+from scripts.local_connectors import load_connector_secrets
+os.environ.update(load_connector_secrets(data / 'connector-secrets.json'))
+
 from app import config
 # Ignore any production .env file for this isolated development launcher.
 model_file = data / 'model-connection.json'

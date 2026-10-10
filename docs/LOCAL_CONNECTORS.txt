@@ -1,0 +1,25 @@
+Local connector setup
+
+The console's connector catalogue lists supported protocols, not connected
+accounts. Each account must be configured as a destination before use.
+
+The loopback launcher ignores inherited production credentials. To explicitly
+authorize local connector use, provision data/local/connector-secrets.json
+privately. This git-ignored JSON object maps GROWTHOS_SECRET_* variable names to
+their credential values. Only these names are accepted. Restart the local app
+after changing the file, then reference the variable names in Destinations.
+Never commit this file, upload it, or paste its values into chat.
+
+For Reddit publishing, configure the subreddit, client ID, client-secret
+variable and refresh-token variable (or an authorized script-app login).
+Saving account settings does not publish. Posts use the release approval flow.
+The Reddit adapter is outbound publishing; it is not a Reddit research reader.
+
+RSS, Atom, JSON Feed and Podcast RSS can be served without provider credentials.
+Create outbound destinations, turn them on, and open their Public feed links.
+An empty valid feed means no release currently qualifies: only approved or
+published content that passes the release gate is included. Podcast episodes
+also require hosted audio. Inbound feeds need an actual source feed URL.
+
+The local console remains a development instance. Local destinations and
+credentials are not transferred to Kubernetes by publishing application code.
